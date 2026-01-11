@@ -96,6 +96,7 @@ function connect() {
 
     if (payload.type === "assistant_audio_interrupt") {
       stopPlayback();
+      voiceAssistantEl = null;
     }
 
     if (payload.type === "assistant_audio_done") {
