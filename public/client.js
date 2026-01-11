@@ -72,6 +72,12 @@ function connect() {
       voiceAssistantEl = null;
     }
 
+    if (payload.type === "user_voice_start") {
+      if (!voiceUserEl) {
+        voiceUserEl = appendMessage("You", "", "user");
+      }
+    }
+
     if (payload.type === "user_voice_text_delta") {
       if (!voiceUserEl) {
         voiceUserEl = appendMessage("You", "", "user");

@@ -129,6 +129,7 @@ wss.on("connection", (ws) => {
         pendingUserTranscript = "";
         pendingUserTranscriptSent = false;
         lastUserTranscript = "";
+        ws.send(JSON.stringify({ type: "user_voice_start" }));
         if (realtimeResponding) {
           sendRealtime({ type: "response.cancel" });
           ws.send(JSON.stringify({ type: "assistant_audio_interrupt" }));
