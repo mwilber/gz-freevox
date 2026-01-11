@@ -4,8 +4,8 @@ const express = require("express");
 const WebSocket = require("ws");
 require("dotenv").config();
 
-const { createChatHandler } = require("./chat");
-const { createVoxHandler } = require("./vox");
+const { ChatHandler } = require("./modules/chat");
+const { VoxHandler } = require("./modules/vox");
 
 const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -34,13 +34,13 @@ wss.on("connection", (ws) => {
     }
   ];
 
-  const chat = createChatHandler({
+  const chat = new ChatHandler({
     ws,
     history,
     apiKey: OPENAI_API_KEY
   });
 
-  const vox = createVoxHandler({
+  const vox = new VoxHandler({
     ws,
     history,
     apiKey: OPENAI_API_KEY,

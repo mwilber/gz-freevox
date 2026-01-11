@@ -1,16 +1,23 @@
 const { createParser } = require("eventsource-parser");
 
-function createChatHandler({ ws, history, apiKey, model = "gpt-4o-mini" }) {
-  const streamAssistantResponse = async () => {
+class ChatHandler {
+  constructor({ ws, history, apiKey, model = "gpt-4o-mini" }) {
+    this.ws = ws;
+    this.history = history;
+    this.apiKey = apiKey;
+    this.model = model;
+  }
+
+  async _streamAssistantResponse() {
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model,
-        input: history,
+        model: this.model,
+        input: this.history,
         stream: true
       })
     });
@@ -41,14 +48,14 @@ function createChatHandler({ ws, history, apiKey, model = "gpt-4o-mini" }) {
 
       if (payload.type === "response.output_text.delta") {
         assistantText += payload.delta || "";
-        ws.send(JSON.stringify({
+        this.ws.send(JSON.stringify({
           type: "assistant_delta",
           delta: payload.delta || ""
         }));
       }
 
       if (payload.type === "response.completed") {
-        ws.send(JSON.stringify({ type: "assistant_done" }));
+        this.ws.send(JSON.stringify({ type: "assistant_done" }));
       }
     });
 
@@ -57,21 +64,21 @@ function createChatHandler({ ws, history, apiKey, model = "gpt-4o-mini" }) {
     }
 
     if (assistantText) {
-      history.push({ role: "assistant", content: assistantText });
+      this.history.push({ role: "assistant", content: assistantText });
     }
-  };
+  }
 
-  const handleMessage = async (message) => {
+  async handleMessage(message) {
     if (message.type != "user_message" || !message.text) {
       return false;
     }
 
-    history.push({ role: "user", content: message.text });
+    this.history.push({ role: "user", content: message.text });
 
     try {
-      await streamAssistantResponse();
+      await this._streamAssistantResponse();
     } catch (err) {
-      ws.send(JSON.stringify({
+      this.ws.send(JSON.stringify({
         type: "error",
         message: "OpenAI request failed.",
         detail: err.message
@@ -79,9 +86,7 @@ function createChatHandler({ ws, history, apiKey, model = "gpt-4o-mini" }) {
     }
 
     return true;
-  };
-
-  return { handleMessage };
+  }
 }
 
-module.exports = { createChatHandler };
+module.exports = { ChatHandler };
