@@ -1,4 +1,4 @@
-const path = require("path");
+﻿const path = require("path");
 const http = require("http");
 const express = require("express");
 const WebSocket = require("ws");
@@ -35,12 +35,31 @@ wss.on("connection", (ws) => {
   let realtimeReady = false;
   let realtimeQueue = [];
   let realtimeResponding = false;
+  let pendingUserTranscript = "";
+  let pendingAssistantTranscript = "";
 
   const sendRealtime = (payload) => {
     if (!realtimeSocket || realtimeSocket.readyState !== WebSocket.OPEN) {
       return;
     }
     realtimeSocket.send(JSON.stringify(payload));
+  };
+
+  const seedRealtimeHistory = () => {
+    for (const message of history) {
+      if (!message.content || message.role === "system") {
+        continue;
+      }
+      const textType = message.role === "user" ? "input_text" : "output_text";
+      sendRealtime({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: message.role,
+          content: [{ type: textType, text: message.content }]
+        }
+      });
+    }
   };
 
   const openRealtimeSocket = () => {
@@ -64,6 +83,9 @@ wss.on("connection", (ws) => {
           voice: REALTIME_VOICE,
           input_audio_format: "pcm16",
           output_audio_format: "pcm16",
+          input_audio_transcription: {
+            model: "gpt-4o-mini-transcribe"
+          },
           turn_detection: {
             type: "server_vad",
             threshold: 0.5,
@@ -72,6 +94,8 @@ wss.on("connection", (ws) => {
           }
         }
       });
+
+      seedRealtimeHistory();
 
       if (realtimeQueue.length) {
         for (const queued of realtimeQueue) {
@@ -90,10 +114,12 @@ wss.on("connection", (ws) => {
       }
 
       if (payload.type === "input_audio_buffer.speech_started") {
+        pendingUserTranscript = "";
         if (realtimeResponding) {
           sendRealtime({ type: "response.cancel" });
           ws.send(JSON.stringify({ type: "assistant_audio_interrupt" }));
           realtimeResponding = false;
+          pendingAssistantTranscript = "";
         }
         return;
       }
@@ -124,15 +150,48 @@ wss.on("connection", (ws) => {
       }
 
       if (payload.type === "response.text.delta" || payload.type === "response.output_text.delta") {
-        ws.send(JSON.stringify({
-          type: "assistant_voice_text_delta",
-          delta: payload.delta || ""
-        }));
+        const delta = payload.delta || "";
+        if (delta) {
+          pendingAssistantTranscript += delta;
+          ws.send(JSON.stringify({
+            type: "assistant_voice_text_delta",
+            delta
+          }));
+        }
         return;
       }
 
       if (payload.type === "response.text.done" || payload.type === "response.output_text.done") {
+        if (pendingAssistantTranscript) {
+          history.push({ role: "assistant", content: pendingAssistantTranscript });
+        }
+        pendingAssistantTranscript = "";
         ws.send(JSON.stringify({ type: "assistant_voice_text_done" }));
+        return;
+      }
+
+      if (
+        payload.type === "conversation.item.input_audio_transcription.delta" ||
+        payload.type === "input_audio_transcription.delta"
+      ) {
+        const delta = payload.delta || payload.text || "";
+        if (delta) {
+          pendingUserTranscript += delta;
+          ws.send(JSON.stringify({ type: "user_voice_text_delta", delta }));
+        }
+        return;
+      }
+
+      if (
+        payload.type === "conversation.item.input_audio_transcription.completed" ||
+        payload.type === "input_audio_transcription.completed"
+      ) {
+        const transcript = payload.transcript || payload.text || pendingUserTranscript;
+        if (transcript) {
+          history.push({ role: "user", content: transcript });
+        }
+        pendingUserTranscript = "";
+        ws.send(JSON.stringify({ type: "user_voice_text_done" }));
         return;
       }
 
@@ -146,6 +205,8 @@ wss.on("connection", (ws) => {
       realtimeReady = false;
       realtimeQueue = [];
       realtimeResponding = false;
+      pendingUserTranscript = "";
+      pendingAssistantTranscript = "";
     });
 
     realtimeSocket.on("error", (err) => {
@@ -165,6 +226,8 @@ wss.on("connection", (ws) => {
     realtimeReady = false;
     realtimeQueue = [];
     realtimeResponding = false;
+    pendingUserTranscript = "";
+    pendingAssistantTranscript = "";
   };
 
   ws.on("message", async (raw) => {
@@ -209,11 +272,13 @@ wss.on("connection", (ws) => {
     try {
       await streamAssistantResponse({ ws, history });
     } catch (err) {
-      ws.send(JSON.stringify({
-        type: "error",
-        message: "OpenAI request failed.",
-        detail: err.message
-      }));
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: "OpenAI request failed.",
+          detail: err.message
+        })
+      );
     }
   });
 
@@ -262,10 +327,12 @@ async function streamAssistantResponse({ ws, history }) {
 
     if (payload.type === "response.output_text.delta") {
       assistantText += payload.delta || "";
-      ws.send(JSON.stringify({
-        type: "assistant_delta",
-        delta: payload.delta || ""
-      }));
+      ws.send(
+        JSON.stringify({
+          type: "assistant_delta",
+          delta: payload.delta || ""
+        })
+      );
     }
 
     if (payload.type === "response.completed") {

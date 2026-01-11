@@ -1,4 +1,4 @@
-const chat = document.getElementById("chat");
+﻿const chat = document.getElementById("chat");
 const form = document.getElementById("composer");
 const input = document.getElementById("message");
 const statusEl = document.getElementById("status");
@@ -18,6 +18,7 @@ let playbackContext = null;
 let playbackTime = 0;
 let playbackNodes = [];
 let voiceAssistantEl = null;
+let voiceUserEl = null;
 
 function connect() {
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
@@ -61,7 +62,7 @@ function connect() {
 
     if (payload.type === "assistant_voice_text_delta") {
       if (!voiceAssistantEl) {
-        voiceAssistantEl = appendMessage("Assistant (voice)", "", "assistant");
+        voiceAssistantEl = appendMessage("Assistant", "", "assistant");
       }
       voiceAssistantEl.querySelector(".message__body").textContent += payload.delta;
       chat.scrollTop = chat.scrollHeight;
@@ -69,6 +70,18 @@ function connect() {
 
     if (payload.type === "assistant_voice_text_done") {
       voiceAssistantEl = null;
+    }
+
+    if (payload.type === "user_voice_text_delta") {
+      if (!voiceUserEl) {
+        voiceUserEl = appendMessage("You", "", "user");
+      }
+      voiceUserEl.querySelector(".message__body").textContent += payload.delta;
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    if (payload.type === "user_voice_text_done") {
+      voiceUserEl = null;
     }
 
     if (payload.type === "assistant_audio_delta") {
@@ -224,6 +237,7 @@ function stopVoiceSession({ notifyServer }) {
   voiceSilence = null;
   playbackContext = null;
   voiceAssistantEl = null;
+  voiceUserEl = null;
   updateVoiceUi(false);
   updateComposerState();
 }
