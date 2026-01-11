@@ -1,16 +1,16 @@
 {
-  "name": "freevox",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Real-time two-way LLM conversation using OpenAI and WebSockets",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "dotenv": "^16.4.5",
-    "eventsource-parser": "^1.1.2",
-    "express": "^4.19.2",
-    "ws": "^8.17.0"
-  }
+	"name": "freevox",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Real-time two-way LLM conversation using OpenAI and WebSockets",
+	"main": "server.js",
+	"scripts": {
+		"start": "node server.js"
+	},
+	"dependencies": {
+		"dotenv": "^16.4.5",
+		"eventsource-parser": "^1.1.2",
+		"express": "^4.19.2",
+		"ws": "^8.17.0"
+	}
 }

@@ -8,11 +8,11 @@ FreeVox is a Node.js web app that enables a real-time, two-way conversation with
 - `modules/chat.js`: Text chat handler (Responses API streaming).
 - `modules/vox.js`: Realtime voice handler (OpenAI Realtime WebSocket bridge + transcription).
 - `public/`: Client UI and logic.
-  - `index.html`: App shell and layout.
-  - `styles.css`: Visual design.
-  - `client.js`: Bootstraps chat + voice controllers.
-  - `public/modules/chat.js`: Frontend text chat controller.
-  - `public/modules/vox.js`: Frontend voice controller.
+	- `index.html`: App shell and layout.
+	- `styles.css`: Visual design.
+	- `client.js`: Bootstraps chat + voice controllers.
+	- `public/modules/chat.js`: Frontend text chat controller.
+	- `public/modules/vox.js`: Frontend voice controller.
 
 ## Runtime Flow
 Text chat:
@@ -46,6 +46,7 @@ Voice chat:
 - History is in-memory per connection; it resets when the socket reconnects.
 - Error payloads are sent as `{ type: "error", message, detail? }`.
 - If microphone capture fails, confirm browser permissions and prefer `http://localhost` or HTTPS.
+- Indentation uses tabs across project files.
 
 ## Commit Messages
 All commit messages follow this format:

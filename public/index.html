@@ -1,49 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FreeVox</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div class="ambient"></div>
-    <main class="app">
-      <header class="app__header">
-        <div>
-          <p class="eyebrow">FreeVox</p>
-          <h1>Real-time LLM conversation</h1>
-        </div>
-        <div class="status" id="status">Connecting...</div>
-      </header>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>FreeVox</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+	<body>
+		<div class="ambient"></div>
+		<main class="app">
+			<header class="app__header">
+				<div>
+					<p class="eyebrow">FreeVox</p>
+					<h1>Real-time LLM conversation</h1>
+				</div>
+				<div class="status" id="status">Connecting...</div>
+			</header>
 
-      <section class="chat" id="chat"></section>
+			<section class="chat" id="chat"></section>
 
-      <div class="voice">
-        <button type="button" class="voice__toggle" id="voiceToggle">Start voice</button>
-        <p class="voice__status" id="voiceStatus">Voice idle.</p>
-      </div>
+			<div class="voice">
+				<button type="button" class="voice__toggle" id="voiceToggle">Start voice</button>
+				<p class="voice__status" id="voiceStatus">Voice idle.</p>
+			</div>
 
-      <form class="composer" id="composer">
-        <label class="sr-only" for="message">Your message</label>
-        <input
-          id="message"
-          name="message"
-          type="text"
-          placeholder="Ask anything..."
-          autocomplete="off"
-          required
-        />
-        <button type="submit">Send</button>
-      </form>
-    </main>
+			<form class="composer" id="composer">
+				<label class="sr-only" for="message">Your message</label>
+				<input
+					id="message"
+					name="message"
+					type="text"
+					placeholder="Ask anything..."
+					autocomplete="off"
+					required
+				/>
+				<button type="submit">Send</button>
+			</form>
+		</main>
 
-    <script type="module" src="client.js"></script>
-  </body>
+		<script type="module" src="client.js"></script>
+	</body>
 </html>
