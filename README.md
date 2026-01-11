@@ -31,6 +31,7 @@ Visit `http://localhost:3000`.
 - Click "Start voice" to begin a real-time audio conversation and allow microphone access when prompted.
 - Speak at any time to interrupt the assistant mid-response; it will stop and listen.
 - Click "End voice" to finish the conversation.
+- Voice transcripts for both sides appear in the chat history as standard messages.
 - Optional configuration: `OPENAI_REALTIME_MODEL`, `OPENAI_REALTIME_VOICE`, and `OPENAI_REALTIME_PROMPT` in `.env`.
 
 ## Troubleshooting

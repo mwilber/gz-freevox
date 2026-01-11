@@ -22,9 +22,10 @@ Voice chat:
 1. User clicks the voice button; the client requests the microphone and sends `{ type: "audio_start" }`.
 2. The client streams PCM16 audio chunks with `{ type: "audio_chunk", audio }`.
 3. The server opens a Realtime WebSocket session and forwards audio chunks to OpenAI.
-4. The server streams audio deltas back as `{ type: "assistant_audio_delta", audio }` and optional transcript deltas as `{ type: "assistant_voice_text_delta", delta }`.
-5. Speaking while the assistant talks triggers interruption; the server sends `{ type: "assistant_audio_interrupt" }` and cancels the response.
-6. When the user ends, the client sends `{ type: "audio_stop" }` and the server closes the realtime session.
+4. On speech start the server sends `{ type: "user_voice_start" }` so the client can place the user transcript bubble immediately.
+5. The server streams audio deltas back as `{ type: "assistant_audio_delta", audio }` and transcript deltas as `{ type: "assistant_voice_text_delta", delta }` plus `{ type: "user_voice_text_delta", delta }`.
+6. Speaking while the assistant talks triggers interruption; the server sends `{ type: "assistant_audio_interrupt" }` and cancels the response.
+7. When the user ends, the client sends `{ type: "audio_stop" }` and the server closes the realtime session.
 
 ## Configuration
 - `.env` must include `OPENAI_API_KEY`.
