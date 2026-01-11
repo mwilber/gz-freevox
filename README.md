@@ -34,6 +34,11 @@ Visit `http://localhost:3000`.
 - Voice transcripts for both sides appear in the chat history as standard messages.
 - Optional configuration: `OPENAI_REALTIME_MODEL`, `OPENAI_REALTIME_VOICE`, and `OPENAI_REALTIME_PROMPT` in `.env`.
 
+## Code structure
+
+- `modules/chat.js` and `modules/vox.js` hold the server-side chat/voice handlers.
+- `public/modules/chat.js` and `public/modules/vox.js` hold the frontend chat/voice controllers.
+
 ## Troubleshooting
 
 - If the mic button does nothing, confirm the browser granted microphone access and reload.

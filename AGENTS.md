@@ -4,11 +4,15 @@
 FreeVox is a Node.js web app that enables a real-time, two-way conversation with an LLM. It supports text chat via OpenAI's streaming Responses API over WebSockets and a live audio conversation via OpenAI's Realtime API. The server keeps a short in-memory conversation history per WebSocket connection and streams assistant output back to the client in incremental chunks.
 
 ## Architecture
-- `server.js`: Express static server + WebSocket server. Receives user messages, appends to history, calls OpenAI, streams deltas back to the client. Also bridges realtime audio between the browser and OpenAI's Realtime WebSocket.
+- `server.js`: Express static server + WebSocket server. Wires chat + voice handlers and forwards WS messages.
+- `modules/chat.js`: Text chat handler (Responses API streaming).
+- `modules/vox.js`: Realtime voice handler (OpenAI Realtime WebSocket bridge + transcription).
 - `public/`: Client UI and logic.
   - `index.html`: App shell and layout.
   - `styles.css`: Visual design.
-  - `client.js`: WebSocket client, message rendering, streaming handling, mic capture, and audio playback.
+  - `client.js`: Bootstraps chat + voice controllers.
+  - `public/modules/chat.js`: Frontend text chat controller.
+  - `public/modules/vox.js`: Frontend voice controller.
 
 ## Runtime Flow
 Text chat:
