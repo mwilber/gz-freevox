@@ -36,7 +36,10 @@ wss.on("connection", (ws) => {
   let realtimeQueue = [];
   let realtimeResponding = false;
   let pendingUserTranscript = "";
+  let pendingUserTranscriptSent = false;
   let pendingAssistantTranscript = "";
+  let lastUserTranscript = "";
+  let bufferHasAudio = false;
 
   const sendRealtime = (payload) => {
     if (!realtimeSocket || realtimeSocket.readyState !== WebSocket.OPEN) {
@@ -60,6 +63,15 @@ wss.on("connection", (ws) => {
         }
       });
     }
+  };
+
+  const commitAssistantTranscript = () => {
+    if (!pendingAssistantTranscript) {
+      return;
+    }
+    history.push({ role: "assistant", content: pendingAssistantTranscript });
+    pendingAssistantTranscript = "";
+    ws.send(JSON.stringify({ type: "assistant_voice_text_done" }));
   };
 
   const openRealtimeSocket = () => {
@@ -115,6 +127,8 @@ wss.on("connection", (ws) => {
 
       if (payload.type === "input_audio_buffer.speech_started") {
         pendingUserTranscript = "";
+        pendingUserTranscriptSent = false;
+        lastUserTranscript = "";
         if (realtimeResponding) {
           sendRealtime({ type: "response.cancel" });
           ws.send(JSON.stringify({ type: "assistant_audio_interrupt" }));
@@ -125,14 +139,20 @@ wss.on("connection", (ws) => {
       }
 
       if (payload.type === "input_audio_buffer.speech_stopped") {
+        if (!bufferHasAudio) {
+          return;
+        }
         sendRealtime({ type: "input_audio_buffer.commit" });
-        sendRealtime({
-          type: "response.create",
-          response: {
-            modalities: ["audio", "text"]
-          }
-        });
-        realtimeResponding = true;
+        bufferHasAudio = false;
+        if (!realtimeResponding) {
+          sendRealtime({
+            type: "response.create",
+            response: {
+              modalities: ["audio", "text"]
+            }
+          });
+          realtimeResponding = true;
+        }
         return;
       }
 
@@ -150,7 +170,7 @@ wss.on("connection", (ws) => {
       }
 
       if (payload.type === "response.text.delta" || payload.type === "response.output_text.delta") {
-        const delta = payload.delta || "";
+        const delta = payload.delta || payload.text || "";
         if (delta) {
           pendingAssistantTranscript += delta;
           ws.send(JSON.stringify({
@@ -162,11 +182,30 @@ wss.on("connection", (ws) => {
       }
 
       if (payload.type === "response.text.done" || payload.type === "response.output_text.done") {
-        if (pendingAssistantTranscript) {
-          history.push({ role: "assistant", content: pendingAssistantTranscript });
+        commitAssistantTranscript();
+        return;
+      }
+
+      if (
+        payload.type === "response.audio_transcript.delta" ||
+        payload.type === "response.output_audio_transcript.delta"
+      ) {
+        const delta = payload.delta || payload.text || "";
+        if (delta) {
+          pendingAssistantTranscript += delta;
+          ws.send(JSON.stringify({
+            type: "assistant_voice_text_delta",
+            delta
+          }));
         }
-        pendingAssistantTranscript = "";
-        ws.send(JSON.stringify({ type: "assistant_voice_text_done" }));
+        return;
+      }
+
+      if (
+        payload.type === "response.audio_transcript.done" ||
+        payload.type === "response.output_audio_transcript.done"
+      ) {
+        commitAssistantTranscript();
         return;
       }
 
@@ -177,6 +216,7 @@ wss.on("connection", (ws) => {
         const delta = payload.delta || payload.text || "";
         if (delta) {
           pendingUserTranscript += delta;
+          pendingUserTranscriptSent = true;
           ws.send(JSON.stringify({ type: "user_voice_text_delta", delta }));
         }
         return;
@@ -187,16 +227,40 @@ wss.on("connection", (ws) => {
         payload.type === "input_audio_transcription.completed"
       ) {
         const transcript = payload.transcript || payload.text || pendingUserTranscript;
-        if (transcript) {
+        if (transcript && transcript !== lastUserTranscript) {
           history.push({ role: "user", content: transcript });
+          if (!pendingUserTranscriptSent) {
+            ws.send(JSON.stringify({ type: "user_voice_text_delta", delta: transcript }));
+          }
+          lastUserTranscript = transcript;
         }
         pendingUserTranscript = "";
+        pendingUserTranscriptSent = false;
         ws.send(JSON.stringify({ type: "user_voice_text_done" }));
+        return;
+      }
+
+      if (payload.type === "conversation.item.created" || payload.type === "conversation.item.updated") {
+        const item = payload.item;
+        if (item && item.role === "user" && Array.isArray(item.content)) {
+          const textPart = item.content.find((part) => part.type === "input_text");
+          const audioPart = item.content.find((part) => part.type === "input_audio");
+          const transcript = (textPart && textPart.text) || (audioPart && audioPart.transcript) || "";
+          if (transcript && transcript !== lastUserTranscript) {
+            history.push({ role: "user", content: transcript });
+            ws.send(JSON.stringify({ type: "user_voice_text_delta", delta: transcript }));
+            ws.send(JSON.stringify({ type: "user_voice_text_done" }));
+            pendingUserTranscript = "";
+            pendingUserTranscriptSent = true;
+            lastUserTranscript = transcript;
+          }
+        }
         return;
       }
 
       if (payload.type === "response.completed") {
         realtimeResponding = false;
+        commitAssistantTranscript();
       }
     });
 
@@ -206,7 +270,9 @@ wss.on("connection", (ws) => {
       realtimeQueue = [];
       realtimeResponding = false;
       pendingUserTranscript = "";
+      pendingUserTranscriptSent = false;
       pendingAssistantTranscript = "";
+      bufferHasAudio = false;
     });
 
     realtimeSocket.on("error", (err) => {
@@ -227,7 +293,9 @@ wss.on("connection", (ws) => {
     realtimeQueue = [];
     realtimeResponding = false;
     pendingUserTranscript = "";
+    pendingUserTranscriptSent = false;
     pendingAssistantTranscript = "";
+    bufferHasAudio = false;
   };
 
   ws.on("message", async (raw) => {
@@ -255,6 +323,7 @@ wss.on("connection", (ws) => {
         } else {
           sendRealtime(payload);
         }
+        bufferHasAudio = true;
         return;
       }
 
