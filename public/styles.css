@@ -130,6 +130,27 @@ h1 {
   box-shadow: var(--shadow);
 }
 
+.voice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.voice__toggle.is-active {
+  background: #1f6f5f;
+}
+
+.voice__status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
 input {
   border: 1px solid transparent;
   background: #fff;
@@ -210,6 +231,11 @@ button:disabled {
 
   .composer {
     grid-template-columns: 1fr;
+  }
+
+  .voice {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   button {
