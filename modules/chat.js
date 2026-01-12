@@ -6,20 +6,27 @@ class ChatHandler {
 		this.history = history;
 		this.apiKey = apiKey;
 		this.model = model;
+		this.tools = [];
 	}
 
-	async _streamAssistantResponse() {
+	async _streamAssistantResponse({ tools } = {}) {
+		const requestBody = {
+			model: this.model,
+			input: this.history,
+			stream: true
+		};
+
+		if (Array.isArray(tools) && tools.length > 0) {
+			requestBody.tools = tools;
+		}
+
 		const response = await fetch("https://api.openai.com/v1/responses", {
 			method: "POST",
 			headers: {
 				Authorization: `Bearer ${this.apiKey}`,
 				"Content-Type": "application/json"
 			},
-			body: JSON.stringify({
-				model: this.model,
-				input: this.history,
-				stream: true
-			})
+			body: JSON.stringify(requestBody)
 		});
 
 		if (!response.ok || !response.body) {
@@ -29,6 +36,7 @@ class ChatHandler {
 
 		const decoder = new TextDecoder();
 		let assistantText = "";
+		const toolCalls = new Map();
 
 		const parser = createParser((event) => {
 			if (event.type != "event") {
@@ -44,6 +52,47 @@ class ChatHandler {
 				payload = JSON.parse(event.data);
 			} catch (err) {
 				return;
+			}
+
+			if (payload.type === "response.output_item.added") {
+				const item = payload.item;
+				if (item?.type === "function_call") {
+					toolCalls.set(item.id, {
+						id: item.id,
+						function: {
+							name: item.name,
+							arguments: item.arguments || ""
+						}
+					});
+				}
+			}
+
+			if (payload.type === "response.function_call_arguments.delta") {
+				const call = toolCalls.get(payload.item_id);
+				if (call) {
+					call.function.arguments += payload.delta || "";
+				}
+			}
+
+			if (payload.type === "response.output_item.done") {
+				const item = payload.item;
+				if (item?.type === "function_call") {
+					const call = toolCalls.get(item.id);
+					if (call) {
+						call.function.name = item.name || call.function.name;
+						if (typeof item.arguments === "string") {
+							call.function.arguments = item.arguments;
+						}
+					} else {
+						toolCalls.set(item.id, {
+							id: item.id,
+							function: {
+								name: item.name,
+								arguments: item.arguments || ""
+							}
+						});
+					}
+				}
 			}
 
 			if (payload.type === "response.output_text.delta") {
@@ -63,20 +112,103 @@ class ChatHandler {
 			parser.feed(decoder.decode(chunk, { stream: true }));
 		}
 
+		return {
+			assistantText,
+			toolCalls: Array.from(toolCalls.values())
+		};
+	}
+
+	async handleMessage(message) {
+		if (message.type != "user_message" || !message.text) {
+			return this._handleToolResults(message);
+		}
+
+		this.history.push({ role: "user", content: message.text });
+		if (Array.isArray(message.tools)) {
+			this.tools = message.tools;
+		}
+
+		try {
+			await this._handleAssistantResponse();
+		} catch (err) {
+			this.ws.send(JSON.stringify({
+				type: "error",
+				message: "OpenAI request failed.",
+				detail: err.message
+			}));
+		}
+
+		return true;
+	}
+
+	async _handleAssistantResponse() {
+		const { assistantText, toolCalls } = await this._streamAssistantResponse({
+			tools: this.tools
+		});
+
+		if (toolCalls.length > 0) {
+			this.history.push({
+				role: "assistant",
+				content: assistantText || "",
+				tool_calls: toolCalls.map((toolCall) => ({
+					id: toolCall.id,
+					type: "function",
+					function: {
+						name: toolCall.function?.name,
+						arguments: toolCall.function?.arguments || ""
+					}
+				}))
+			});
+			this.ws.send(JSON.stringify({
+				type: "assistant_tool_calls",
+				toolCalls
+			}));
+			return;
+		}
+
 		if (assistantText) {
 			this.history.push({ role: "assistant", content: assistantText });
 		}
 	}
 
-	async handleMessage(message) {
-		if (message.type != "user_message" || !message.text) {
+	async _handleToolResults(message) {
+		if (message.type !== "tool_results") {
 			return false;
 		}
 
-		this.history.push({ role: "user", content: message.text });
+		if (!Array.isArray(message.results) || message.results.length === 0) {
+			this.ws.send(JSON.stringify({
+				type: "error",
+				message: "Invalid tool results payload."
+			}));
+			return true;
+		}
+
+		for (const result of message.results) {
+			if (!result || !result.tool_call_id) {
+				continue;
+			}
+			let content = result.content;
+			if (content === undefined) {
+				content = result.result;
+			}
+			if (typeof content !== "string") {
+				try {
+					content = JSON.stringify(content ?? {});
+				} catch (err) {
+					content = "";
+				}
+			}
+			this.history.push({
+				role: "tool",
+				tool_call_id: result.tool_call_id,
+				name: result.name,
+				content
+			});
+		}
 
 		try {
-			await this._streamAssistantResponse();
+			await this._handleAssistantResponse();
 		} catch (err) {
 			this.ws.send(JSON.stringify({
 				type: "error",

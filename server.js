@@ -58,8 +58,8 @@ wss.on("connection", (ws) => {
 			return;
 		}
 
-		if (message.type === "user_message") {
-			if (!message.text) {
+		if (message.type === "user_message" || message.type === "tool_results") {
+			if (message.type === "user_message" && !message.text) {
 				ws.send(JSON.stringify({ type: "error", message: "Invalid message payload." }));
 				return;
 			}
