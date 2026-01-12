@@ -2,6 +2,16 @@ import { McpClient } from "./mcp-client.js";
 import { getMcpConfig } from "./mcp-config.js";
 
 class VoxController {
+	/**
+	 * @param {object} options
+	 * @param {WebSocket} options.socket
+	 * @param {Function} options.appendMessage
+	 * @param {HTMLElement} options.chatEl
+	 * @param {HTMLElement} options.voiceToggle
+	 * @param {HTMLElement} options.voiceStatus
+	 * @param {Function} options.onVoiceActiveChange
+	 * @param {Function} options.canStartVoice
+	 */
 	constructor({
 		socket,
 		appendMessage,
@@ -43,6 +53,9 @@ class VoxController {
 		this.initializeMcpClient();
 	}
 
+	/**
+	 * Toggles the voice session on click.
+	 */
 	_handleToggle() {
 		if (this.isVoiceActive) {
 			this.stopVoiceSession({ notifyServer: true });
@@ -51,6 +64,10 @@ class VoxController {
 		this.startVoiceSession();
 	}
 
+	/**
+	 * Starts capture and opens the voice session.
+	 * @returns {Promise<void>}
+	 */
 	async startVoiceSession() {
 		if (
 			this.isVoiceActive ||
@@ -114,6 +131,11 @@ class VoxController {
 			});
 	}
 
+	/**
+	 * Stops capture and closes the voice session.
+	 * @param {object} options
+	 * @param {boolean} options.notifyServer
+	 */
 	stopVoiceSession({ notifyServer }) {
 		if (!this.isVoiceActive && !this.voiceStream) {
 			return;
@@ -157,6 +179,9 @@ class VoxController {
 		this.onVoiceActiveChange(false);
 	}
 
+	/**
+	 * Initializes the MCP client and tool list.
+	 */
 	initializeMcpClient() {
 		this.mcpClient = new McpClient();
 		this.mcpReadyPromise = this.mcpClient
@@ -167,6 +192,10 @@ class VoxController {
 			});
 	}
 
+	/**
+	 * Loads MCP tools and builds tool routing.
+	 * @returns {Promise<void>}
+	 */
 	async loadMcpTools() {
 		const toolsResponse = await this.mcpClient.listTools();
 		const tools = toolsResponse?.result?.tools || [];
@@ -187,6 +216,10 @@ class VoxController {
 		);
 	}
 
+	/**
+	 * @param {object} payload
+	 * @returns {boolean}
+	 */
 	handleSocketMessage(payload) {
 		if (payload.type === "assistant_voice_text_delta") {
 			if (!this.voiceAssistantEl) {
@@ -248,6 +281,9 @@ class VoxController {
 		return false;
 	}
 
+	/**
+	 * @param {Array} toolCalls
+	 */
 	queueToolCalls(toolCalls) {
 		for (const toolCall of toolCalls) {
 			let args = {};
@@ -266,6 +302,9 @@ class VoxController {
 		}
 	}
 
+	/**
+	 * @returns {Promise<void>}
+	 */
 	async executeToolQueue() {
 		if (this.toolQueue.length === 0 || this.socket.readyState !== WebSocket.OPEN) {
 			return;
@@ -314,10 +353,16 @@ class VoxController {
 		this.socket.send(JSON.stringify({ type: "voice_tool_results", results }));
 	}
 
+	/**
+	 * Handles websocket closure by tearing down audio.
+	 */
 	handleSocketClose() {
 		this.stopVoiceSession({ notifyServer: false });
 	}
 
+	/**
+	 * @param {boolean} active
+	 */
 	_updateVoiceUi(active) {
 		if (!this.voiceToggle || !this.voiceStatus) {
 			return;
@@ -327,6 +372,10 @@ class VoxController {
 		this.voiceStatus.textContent = active ? "Listening and speaking in real time." : "Voice idle.";
 	}
 
+	/**
+	 * @param {Float32Array} float32Array
+	 * @returns {Int16Array}
+	 */
 	_floatTo16BitPCM(float32Array) {
 		const output = new Int16Array(float32Array.length);
 		for (let i = 0; i < float32Array.length; i += 1) {
@@ -336,6 +385,10 @@ class VoxController {
 		return output;
 	}
 
+	/**
+	 * @param {Int16Array} pcm16Array
+	 * @returns {string}
+	 */
 	_pcm16ToBase64(pcm16Array) {
 		const bytes = new Uint8Array(pcm16Array.buffer);
 		let binary = "";
@@ -346,6 +399,10 @@ class VoxController {
 		return btoa(binary);
 	}
 
+	/**
+	 * @param {string} base64
+	 * @returns {Int16Array}
+	 */
 	_base64ToInt16(base64) {
 		if (!base64) {
 			return new Int16Array(0);
@@ -358,6 +415,9 @@ class VoxController {
 		return new Int16Array(bytes.buffer);
 	}
 
+	/**
+	 * @param {string} base64
+	 */
 	_queueAudioPlayback(base64) {
 		if (!this.playbackContext || !base64) {
 			return;
@@ -386,6 +446,9 @@ class VoxController {
 		};
 	}
 
+	/**
+	 * Stops queued playback sources.
+	 */
 	_stopPlayback() {
 		this.playbackNodes.forEach((node) => {
 			try {
@@ -398,6 +461,10 @@ class VoxController {
 		this.playbackTime = this.playbackContext ? this.playbackContext.currentTime : 0;
 	}
 
+	/**
+	 * @param {AudioContext} context
+	 * @returns {Promise<void>}
+	 */
 	async _resumeAudioContext(context) {
 		if (!context) {
 			return;

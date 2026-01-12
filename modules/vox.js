@@ -1,6 +1,15 @@
 const WebSocket = require("ws");
 
 class VoxHandler {
+	/**
+	 * @param {object} options
+	 * @param {object} options.ws
+	 * @param {Array} options.history
+	 * @param {string} options.apiKey
+	 * @param {string} options.model
+	 * @param {string} options.voice
+	 * @param {string} options.systemPrompt
+	 */
 	constructor({ ws, history, apiKey, model, voice, systemPrompt }) {
 		this.ws = ws;
 		this.history = history;
@@ -22,6 +31,10 @@ class VoxHandler {
 		this.bufferHasAudio = false;
 	}
 
+	/**
+	 * Sends a payload to the realtime websocket if connected.
+	 * @param {object} payload
+	 */
 	_sendRealtime(payload) {
 		if (!this.realtimeSocket || this.realtimeSocket.readyState !== WebSocket.OPEN) {
 			return;
@@ -29,6 +42,9 @@ class VoxHandler {
 		this.realtimeSocket.send(JSON.stringify(payload));
 	}
 
+	/**
+	 * Sends prior text history into the realtime session.
+	 */
 	_seedRealtimeHistory() {
 		for (const message of this.history) {
 			if (!message.content || message.role === "system") {
@@ -46,6 +62,9 @@ class VoxHandler {
 		}
 	}
 
+	/**
+	 * Commits the buffered assistant transcript to history.
+	 */
 	_commitAssistantTranscript() {
 		if (!this.pendingAssistantTranscript) {
 			return;
@@ -55,6 +74,9 @@ class VoxHandler {
 		this.ws.send(JSON.stringify({ type: "assistant_voice_text_done" }));
 	}
 
+	/**
+	 * Opens the OpenAI realtime websocket and wires handlers.
+	 */
 	_openRealtimeSocket() {
 		if (this.realtimeSocket) {
 			return;
@@ -344,6 +366,9 @@ class VoxHandler {
 		});
 	}
 
+	/**
+	 * Closes the realtime websocket and resets state.
+	 */
 	_closeRealtimeSocket() {
 		if (this.realtimeSocket) {
 			this.realtimeSocket.close();
@@ -359,6 +384,11 @@ class VoxHandler {
 		this.realtimeToolCalls.clear();
 	}
 
+	/**
+	 * Handles voice websocket payloads from the client.
+	 * @param {object} message
+	 * @returns {boolean}
+	 */
 	handleMessage(message) {
 		if (message.type === "audio_start") {
 			if (Array.isArray(message.tools)) {
@@ -430,6 +460,9 @@ class VoxHandler {
 		return false;
 	}
 
+	/**
+	 * Cleans up when the client websocket closes.
+	 */
 	handleClose() {
 		this._closeRealtimeSocket();
 	}

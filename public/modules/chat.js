@@ -2,6 +2,16 @@ import { McpClient } from "./mcp-client.js";
 import { getMcpConfig } from "./mcp-config.js";
 
 class ChatController {
+	/**
+	 * @param {object} options
+	 * @param {WebSocket} options.socket
+	 * @param {Function} options.appendMessage
+	 * @param {HTMLElement} options.chatEl
+	 * @param {HTMLFormElement} options.formEl
+	 * @param {HTMLInputElement} options.inputEl
+	 * @param {Function} options.onStreamingChange
+	 * @param {Function} options.canSendMessage
+	 */
 	constructor({
 		socket,
 		appendMessage,
@@ -33,11 +43,17 @@ class ChatController {
 		this.initializeMcpClient();
 	}
 
+	/**
+	 * @param {boolean} value
+	 */
 	_setStreaming(value) {
 		this.isStreaming = value;
 		this.onStreamingChange(this.isStreaming);
 	}
 
+	/**
+	 * @param {Event} event
+	 */
 	_handleSubmit(event) {
 		event.preventDefault();
 		const text = this.inputEl.value.trim();
@@ -65,6 +81,9 @@ class ChatController {
 		this._setStreaming(true);
 	}
 
+	/**
+	 * Initializes the MCP client and tool list.
+	 */
 	initializeMcpClient() {
 		this.mcpClient = new McpClient();
 		this.mcpReadyPromise = this.mcpClient
@@ -75,6 +94,10 @@ class ChatController {
 			});
 	}
 
+	/**
+	 * Loads MCP tools and builds tool routing.
+	 * @returns {Promise<void>}
+	 */
 	async loadMcpTools() {
 		const toolsResponse = await this.mcpClient.listTools();
 		const tools = toolsResponse?.result?.tools || [];
@@ -95,6 +118,10 @@ class ChatController {
 		);
 	}
 
+	/**
+	 * @param {object} payload
+	 * @returns {boolean}
+	 */
 	handleSocketMessage(payload) {
 		if (payload.type === "assistant_delta") {
 			if (!this.currentAssistantEl) {
@@ -120,6 +147,9 @@ class ChatController {
 		return false;
 	}
 
+	/**
+	 * @param {Array} toolCalls
+	 */
 	queueToolCalls(toolCalls) {
 		for (const toolCall of toolCalls) {
 			let args = {};
@@ -138,6 +168,9 @@ class ChatController {
 		}
 	}
 
+	/**
+	 * @returns {Promise<void>}
+	 */
 	async executeToolQueue() {
 		if (this.toolQueue.length === 0 || this.socket.readyState !== WebSocket.OPEN) {
 			return;
@@ -186,6 +219,9 @@ class ChatController {
 		this.socket.send(JSON.stringify({ type: "tool_results", results }));
 	}
 
+	/**
+	 * Resets local streaming state on errors.
+	 */
 	handleError() {
 		if (this.isStreaming) {
 			this._setStreaming(false);

@@ -1,6 +1,13 @@
 const { createParser } = require("eventsource-parser");
 
 class ChatHandler {
+	/**
+	 * @param {object} options
+	 * @param {object} options.ws
+	 * @param {Array} options.history
+	 * @param {string} options.apiKey
+	 * @param {string} [options.model]
+	 */
 	constructor({ ws, history, apiKey, model = "gpt-4o-mini" }) {
 		this.ws = ws;
 		this.history = history;
@@ -11,6 +18,12 @@ class ChatHandler {
 		this.pendingToolResults = [];
 	}
 
+	/**
+	 * Streams a Responses API call and collects tool calls.
+	 * @param {object} [options]
+	 * @param {Array} [options.tools]
+	 * @returns {Promise<{assistantText: string, toolCalls: Array}>}
+	 */
 	async _streamAssistantResponse({ tools } = {}) {
 		const input = this.history.map((message) => {
 			if (!message || typeof message !== "object") {
@@ -158,6 +171,11 @@ class ChatHandler {
 		};
 	}
 
+	/**
+	 * Handles incoming websocket payloads for text chat and tool results.
+	 * @param {object} message
+	 * @returns {Promise<boolean>}
+	 */
 	async handleMessage(message) {
 		if (message.type != "user_message" || !message.text) {
 			return this._handleToolResults(message);
@@ -181,6 +199,10 @@ class ChatHandler {
 		return true;
 	}
 
+	/**
+	 * Sends a request to the model and routes tool call results.
+	 * @returns {Promise<void>}
+	 */
 	async _handleAssistantResponse() {
 		const { assistantText, toolCalls } = await this._streamAssistantResponse({
 			tools: this.tools
@@ -209,6 +231,11 @@ class ChatHandler {
 		}
 	}
 
+	/**
+	 * Applies tool outputs and triggers a follow-up model response.
+	 * @param {object} message
+	 * @returns {Promise<boolean>}
+	 */
 	async _handleToolResults(message) {
 		if (message.type !== "tool_results") {
 			return false;

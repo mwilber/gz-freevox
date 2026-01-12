@@ -1,12 +1,18 @@
 import { getMcpConfig } from "./mcp-config.js";
 
 export class McpClient {
+  /**
+   * @param {object} [config]
+   */
   constructor(config = getMcpConfig()) {
     this.config = config;
     this.sessionId = null;
     this.requestId = 1;
   }
 
+  /**
+   * @returns {Promise<object|null>}
+   */
   async initialize() {
     const payload = {
       jsonrpc: "2.0",
@@ -44,6 +50,9 @@ export class McpClient {
     return this.parseResponse(response);
   }
 
+  /**
+   * @returns {Promise<object|null>}
+   */
   async listTools() {
     return this.sendRequest({
       method: "tools/list",
@@ -51,6 +60,11 @@ export class McpClient {
     });
   }
 
+  /**
+   * @param {string} name
+   * @param {object} [args]
+   * @returns {Promise<object|null>}
+   */
   async callTool(name, args = {}) {
     return this.sendRequest({
       method: "tools/call",
@@ -61,6 +75,12 @@ export class McpClient {
     });
   }
 
+  /**
+   * @param {object} request
+   * @param {string} request.method
+   * @param {object} request.params
+   * @returns {Promise<object|null>}
+   */
   async sendRequest(request) {
     if (!this.sessionId) {
       await this.initialize();
@@ -90,6 +110,10 @@ export class McpClient {
     return this.parseResponse(response);
   }
 
+  /**
+   * @param {Response} response
+   * @returns {Promise<object|null>}
+   */
   async parseResponse(response) {
     const contentType = response.headers.get("content-type") || "";
     if (contentType.includes("text/event-stream")) {

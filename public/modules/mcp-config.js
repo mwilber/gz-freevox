@@ -7,6 +7,9 @@ const DEFAULT_TOOL_ROUTING = {
   serverTools: [],
 };
 
+/**
+ * @returns {{mcpUrl: string, toolRouting: object}}
+ */
 export function getMcpConfig() {
   // const hostname = window.location.hostname;
   // const origin = window.location.origin;
