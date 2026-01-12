@@ -35,7 +35,8 @@ function connect() {
 		const payload = JSON.parse(event.data);
 
 		if (payload.type === "error") {
-			appendMessage("System", payload.message || "Something went wrong.", "assistant");
+			const detail = payload.detail ? ` (${payload.detail})` : "";
+			appendMessage("System", `${payload.message || "Something went wrong."}${detail}`, "assistant");
 			if (chatController) {
 				chatController.handleError();
 			}

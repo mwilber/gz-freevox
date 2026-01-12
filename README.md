@@ -34,13 +34,30 @@ Visit `http://localhost:3000`.
 - Voice transcripts for both sides appear in the chat history as standard messages.
 - Optional configuration: `OPENAI_REALTIME_MODEL`, `OPENAI_REALTIME_VOICE`, and `OPENAI_REALTIME_PROMPT` in `.env`.
 
+## MCP tools (text chat)
+
+Text chat can expose MCP tools to the model and execute them in the browser.
+
+- MCP client config lives in `public/modules/mcp-config.js`.
+- MCP client implementation lives in `public/modules/mcp-client.js`.
+- The text chat flow sends tool definitions to the Responses API and handles tool calls over the existing WebSocket.
+- Tool calls return `call_id` values; tool outputs must be sent back as `function_call_output` items with matching `call_id`.
+
 ## Code structure
 
 - `modules/chat.js` and `modules/vox.js` hold the server-side chat/voice handlers.
 - `public/modules/chat.js` and `public/modules/vox.js` hold the frontend chat/voice controllers.
+- `public/modules/mcp-client.js` and `public/modules/mcp-config.js` handle MCP tool discovery and execution in the browser.
 
 ## Troubleshooting
 
 - If the mic button does nothing, confirm the browser granted microphone access and reload.
 - If audio playback is silent, check the system volume and that the browser tab is not muted.
 - For reliable microphone access in some browsers, use `https://` or `http://localhost`.
+- If the UI shows `OpenAI request failed`, the detail is included in the same system message for faster debugging.
+
+## Tests
+
+```bash
+npm test
+```

@@ -83,11 +83,9 @@ class ChatController {
 		);
 		this.mcpTools = tools.map((tool) => ({
 			type: "function",
-			function: {
-				name: tool.name,
-				description: tool.description || "",
-				parameters: tool.inputSchema || { type: "object", properties: {} }
-			}
+			name: tool.name,
+			description: tool.description || "",
+			parameters: tool.inputSchema || { type: "object", properties: {} }
 		}));
 		this.toolRouting = new Map(
 			tools.map((tool) => [
@@ -133,7 +131,7 @@ class ChatController {
 				}
 			}
 			this.toolQueue.push({
-				toolCallId: toolCall.id,
+				toolCallId: toolCall.call_id || toolCall.id,
 				name: toolCall.function?.name,
 				args
 			});

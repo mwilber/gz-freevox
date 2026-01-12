@@ -7,12 +7,32 @@ class ChatHandler {
 		this.apiKey = apiKey;
 		this.model = model;
 		this.tools = [];
+		this.pendingToolCalls = [];
+		this.pendingToolResults = [];
 	}
 
 	async _streamAssistantResponse({ tools } = {}) {
+		const input = this.history.map((message) => {
+			if (!message || typeof message !== "object") {
+				return message;
+			}
+			if (!message.tool_calls) {
+				return message;
+			}
+			const { tool_calls, ...rest } = message;
+			return rest;
+		});
+		const pendingToolCalls = this.pendingToolCalls;
+		const pendingToolResults = this.pendingToolResults;
+		if (pendingToolCalls.length > 0) {
+			input.push(...pendingToolCalls);
+		}
+		if (pendingToolResults.length > 0) {
+			input.push(...pendingToolResults);
+		}
 		const requestBody = {
 			model: this.model,
-			input: this.history,
+			input,
 			stream: true
 		};
 
@@ -57,8 +77,14 @@ class ChatHandler {
 			if (payload.type === "response.output_item.added") {
 				const item = payload.item;
 				if (item?.type === "function_call") {
-					toolCalls.set(item.id, {
-						id: item.id,
+					const itemId = item.id || item.call_id;
+					const callId = item.call_id || item.id;
+					if (!itemId) {
+						return;
+					}
+					toolCalls.set(itemId, {
+						id: itemId,
+						call_id: callId,
 						function: {
 							name: item.name,
 							arguments: item.arguments || ""
@@ -68,7 +94,9 @@ class ChatHandler {
 			}
 
 			if (payload.type === "response.function_call_arguments.delta") {
-				const call = toolCalls.get(payload.item_id);
+				const call =
+					toolCalls.get(payload.item_id) ||
+					[...toolCalls.values()].find((entry) => entry.call_id === payload.item_id);
 				if (call) {
 					call.function.arguments += payload.delta || "";
 				}
@@ -77,15 +105,25 @@ class ChatHandler {
 			if (payload.type === "response.output_item.done") {
 				const item = payload.item;
 				if (item?.type === "function_call") {
-					const call = toolCalls.get(item.id);
+					const itemId = item.id || item.call_id;
+					const callId = item.call_id || item.id;
+					if (!itemId) {
+						return;
+					}
+					const call =
+						toolCalls.get(itemId) ||
+						[...toolCalls.values()].find((entry) => entry.call_id === callId);
 					if (call) {
+						call.id = itemId || call.id;
+						call.call_id = callId || call.call_id;
 						call.function.name = item.name || call.function.name;
 						if (typeof item.arguments === "string") {
 							call.function.arguments = item.arguments;
 						}
 					} else {
-						toolCalls.set(item.id, {
-							id: item.id,
+						toolCalls.set(itemId, {
+							id: itemId,
+							call_id: callId,
 							function: {
 								name: item.name,
 								arguments: item.arguments || ""
@@ -112,6 +150,8 @@ class ChatHandler {
 			parser.feed(decoder.decode(chunk, { stream: true }));
 		}
 
+		this.pendingToolCalls = [];
+		this.pendingToolResults = [];
 		return {
 			assistantText,
 			toolCalls: Array.from(toolCalls.values())
@@ -147,18 +187,16 @@ class ChatHandler {
 		});
 
 		if (toolCalls.length > 0) {
-			this.history.push({
-				role: "assistant",
-				content: assistantText || "",
-				tool_calls: toolCalls.map((toolCall) => ({
-					id: toolCall.id,
-					type: "function",
-					function: {
-						name: toolCall.function?.name,
-						arguments: toolCall.function?.arguments || ""
-					}
-				}))
-			});
+			if (assistantText) {
+				this.history.push({ role: "assistant", content: assistantText });
+			}
+			this.pendingToolCalls = toolCalls.map((toolCall) => ({
+				type: "function_call",
+				id: toolCall.id,
+				call_id: toolCall.call_id || toolCall.id,
+				name: toolCall.function?.name,
+				arguments: toolCall.function?.arguments || ""
+			}));
 			this.ws.send(JSON.stringify({
 				type: "assistant_tool_calls",
 				toolCalls
@@ -199,11 +237,10 @@ class ChatHandler {
 					content = "";
 				}
 			}
-			this.history.push({
-				role: "tool",
-				tool_call_id: result.tool_call_id,
-				name: result.name,
-				content
+			this.pendingToolResults.push({
+				type: "function_call_output",
+				call_id: result.tool_call_id,
+				output: content
 			});
 		}
 

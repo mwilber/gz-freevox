@@ -12,15 +12,21 @@ FreeVox is a Node.js web app that enables a real-time, two-way conversation with
 	- `styles.css`: Visual design.
 	- `client.js`: Bootstraps chat + voice controllers.
 	- `public/modules/chat.js`: Frontend text chat controller.
+	- `public/modules/mcp-client.js`: Browser MCP client for tool discovery + invocation.
+	- `public/modules/mcp-config.js`: MCP endpoint + routing configuration.
 	- `public/modules/vox.js`: Frontend voice controller.
 
 ## Runtime Flow
 Text chat:
 1. Browser connects to WebSocket at the same host.
-2. User submits a message; the client sends `{ type: "user_message", text }`.
-3. Server appends to history and calls OpenAI with `stream: true`.
-4. As deltas arrive, the server forwards `{ type: "assistant_delta", delta }` to the client.
-5. On completion, the server sends `{ type: "assistant_done" }` and stores the assistant reply in history.
+2. Client initializes the MCP client and discovers tools.
+3. User submits a message; the client sends `{ type: "user_message", text, tools }`.
+4. Server appends the user message and calls OpenAI with `stream: true` and `tools`.
+5. As deltas arrive, the server forwards `{ type: "assistant_delta", delta }` to the client.
+6. If the model emits tool calls, the server sends `{ type: "assistant_tool_calls", toolCalls }` and waits.
+7. The client executes MCP tools and replies with `{ type: "tool_results", results }`.
+8. The server sends a follow-up request including `function_call` + `function_call_output` items (matching `call_id`).
+9. On completion, the server sends `{ type: "assistant_done" }` and stores the assistant reply in history.
 
 Voice chat:
 1. User clicks the voice button; the client requests the microphone and sends `{ type: "audio_start" }`.
@@ -36,15 +42,18 @@ Voice chat:
 - `PORT` is optional (default 3000).
 - Models can be changed in `server.js` in the OpenAI request body.
 - Realtime voice settings can be set via `OPENAI_REALTIME_MODEL`, `OPENAI_REALTIME_VOICE`, and `OPENAI_REALTIME_PROMPT`.
+- MCP endpoint + tool routing are set in `public/modules/mcp-config.js`.
 
 ## Development
 - Install: `npm install`
 - Run: `npm start`
 - Visit: `http://localhost:3000`
+- Test: `npm test`
 
 ## Notes
 - History is in-memory per connection; it resets when the socket reconnects.
 - Error payloads are sent as `{ type: "error", message, detail? }`.
+- Tool calls include both `id` and `call_id`; tool outputs must use `function_call_output` with the matching `call_id`.
 - If microphone capture fails, confirm browser permissions and prefer `http://localhost` or HTTPS.
 - Indentation uses tabs across project files.
 
