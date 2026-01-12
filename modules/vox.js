@@ -8,6 +8,8 @@ class VoxHandler {
 		this.model = model;
 		this.voice = voice;
 		this.systemPrompt = systemPrompt;
+		this.tools = [];
+		this.realtimeToolCalls = new Map();
 
 		this.realtimeSocket = null;
 		this.realtimeReady = false;
@@ -78,6 +80,7 @@ class VoxHandler {
 					input_audio_transcription: {
 						model: "gpt-4o-mini-transcribe"
 					},
+					tools: this.tools.length ? this.tools : undefined,
 					turn_detection: {
 						type: "server_vad",
 						threshold: 0.5,
@@ -115,6 +118,77 @@ class VoxHandler {
 					this.ws.send(JSON.stringify({ type: "assistant_audio_interrupt" }));
 					this.realtimeResponding = false;
 					this.pendingAssistantTranscript = "";
+				}
+				return;
+			}
+
+			if (payload.type === "response.created") {
+				this.realtimeResponding = true;
+				this.realtimeToolCalls.clear();
+				return;
+			}
+
+			if (payload.type === "response.output_item.added") {
+				const item = payload.item;
+				if (item?.type === "function_call") {
+					const itemId = item.id || item.call_id;
+					const callId = item.call_id || item.id;
+					if (!itemId) {
+						return;
+					}
+					this.realtimeToolCalls.set(itemId, {
+						id: itemId,
+						call_id: callId,
+						function: {
+							name: item.name,
+							arguments: item.arguments || ""
+						}
+					});
+				}
+			}
+
+			if (payload.type === "response.function_call_arguments.delta") {
+				const call =
+					this.realtimeToolCalls.get(payload.item_id) ||
+					[...this.realtimeToolCalls.values()].find((entry) => entry.call_id === payload.item_id);
+				if (call) {
+					call.function.arguments += payload.delta || "";
+				}
+				return;
+			}
+
+			if (payload.type === "response.output_item.done") {
+				const item = payload.item;
+				if (item?.type === "function_call") {
+					const itemId = item.id || item.call_id;
+					const callId = item.call_id || item.id;
+					if (!itemId) {
+						return;
+					}
+					const call =
+						this.realtimeToolCalls.get(itemId) ||
+						[...this.realtimeToolCalls.values()].find((entry) => entry.call_id === callId);
+					if (call) {
+						call.id = itemId || call.id;
+						call.call_id = callId || call.call_id;
+						call.function.name = item.name || call.function.name;
+						if (typeof item.arguments === "string") {
+							call.function.arguments = item.arguments;
+						}
+					} else {
+						this.realtimeToolCalls.set(itemId, {
+							id: itemId,
+							call_id: callId,
+							function: {
+								name: item.name,
+								arguments: item.arguments || ""
+							}
+						});
+					}
+					this.ws.send(JSON.stringify({
+						type: "assistant_voice_tool_calls",
+						toolCalls: [this.realtimeToolCalls.get(itemId)]
+					}));
 				}
 				return;
 			}
@@ -243,6 +317,10 @@ class VoxHandler {
 				this.realtimeResponding = false;
 				this._commitAssistantTranscript();
 			}
+
+			if (payload.type === "response.done") {
+				this.realtimeResponding = false;
+			}
 		});
 
 		this.realtimeSocket.on("close", () => {
@@ -254,6 +332,7 @@ class VoxHandler {
 			this.pendingUserTranscriptSent = false;
 			this.pendingAssistantTranscript = "";
 			this.bufferHasAudio = false;
+			this.realtimeToolCalls.clear();
 		});
 
 		this.realtimeSocket.on("error", (err) => {
@@ -277,10 +356,14 @@ class VoxHandler {
 		this.pendingUserTranscriptSent = false;
 		this.pendingAssistantTranscript = "";
 		this.bufferHasAudio = false;
+		this.realtimeToolCalls.clear();
 	}
 
 	handleMessage(message) {
 		if (message.type === "audio_start") {
+			if (Array.isArray(message.tools)) {
+				this.tools = message.tools;
+			}
 			this._openRealtimeSocket();
 			return true;
 		}
@@ -301,6 +384,46 @@ class VoxHandler {
 
 		if (message.type === "audio_stop") {
 			this._closeRealtimeSocket();
+			return true;
+		}
+
+		if (message.type === "voice_tool_results") {
+			if (!Array.isArray(message.results) || message.results.length === 0) {
+				return true;
+			}
+			for (const result of message.results) {
+				if (!result?.tool_call_id) {
+					continue;
+				}
+				let output = result.content;
+				if (output === undefined) {
+					output = result.result;
+				}
+				if (typeof output !== "string") {
+					try {
+						output = JSON.stringify(output ?? {});
+					} catch (err) {
+						output = "";
+					}
+				}
+				this._sendRealtime({
+					type: "conversation.item.create",
+					item: {
+						type: "function_call_output",
+						call_id: result.tool_call_id,
+						output
+					}
+				});
+			}
+			if (!this.realtimeResponding) {
+				this._sendRealtime({
+					type: "response.create",
+					response: {
+						modalities: ["audio", "text"]
+					}
+				});
+				this.realtimeResponding = true;
+			}
 			return true;
 		}
 

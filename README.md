@@ -32,6 +32,7 @@ Visit `http://localhost:3000`.
 - Speak at any time to interrupt the assistant mid-response; it will stop and listen.
 - Click "End voice" to finish the conversation.
 - Voice transcripts for both sides appear in the chat history as standard messages.
+- If MCP tools are configured, the voice session exposes the same tools and executes tool calls via the browser MCP client.
 - Optional configuration: `OPENAI_REALTIME_MODEL`, `OPENAI_REALTIME_VOICE`, and `OPENAI_REALTIME_PROMPT` in `.env`.
 
 ## MCP tools (text chat)
@@ -42,6 +43,7 @@ Text chat can expose MCP tools to the model and execute them in the browser.
 - MCP client implementation lives in `public/modules/mcp-client.js`.
 - The text chat flow sends tool definitions to the Responses API and handles tool calls over the existing WebSocket.
 - Tool calls return `call_id` values; tool outputs must be sent back as `function_call_output` items with matching `call_id`.
+- Voice sessions send the same tool definitions during `audio_start` and return tool outputs via `conversation.item.create`.
 
 ## Code structure
 

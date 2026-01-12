@@ -36,6 +36,7 @@ Voice chat:
 5. The server streams audio deltas back as `{ type: "assistant_audio_delta", audio }` and transcript deltas as `{ type: "assistant_voice_text_delta", delta }` plus `{ type: "user_voice_text_delta", delta }`.
 6. Speaking while the assistant talks triggers interruption; the server sends `{ type: "assistant_audio_interrupt" }` and cancels the response.
 7. When the user ends, the client sends `{ type: "audio_stop" }` and the server closes the realtime session.
+8. If tools are configured, the client sends them with `audio_start`; tool calls arrive as `{ type: "assistant_voice_tool_calls", toolCalls }` and results are returned as `{ type: "voice_tool_results", results }`.
 
 ## Configuration
 - `.env` must include `OPENAI_API_KEY`.

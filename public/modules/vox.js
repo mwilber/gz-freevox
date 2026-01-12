@@ -1,3 +1,6 @@
+import { McpClient } from "./mcp-client.js";
+import { getMcpConfig } from "./mcp-config.js";
+
 class VoxController {
 	constructor({
 		socket,
@@ -27,10 +30,17 @@ class VoxController {
 		this.playbackNodes = [];
 		this.voiceAssistantEl = null;
 		this.voiceUserEl = null;
+		this.mcpClient = null;
+		this.mcpTools = [];
+		this.mcpReadyPromise = null;
+		this.toolQueue = [];
+		this.toolRouting = new Map();
+		this.toolRouteOverrides = getMcpConfig().toolRouting;
 
 		this._handleToggle = this._handleToggle.bind(this);
 		this.voiceToggle.addEventListener("click", this._handleToggle);
 		this._updateVoiceUi(false);
+		this.initializeMcpClient();
 	}
 
 	_handleToggle() {
@@ -88,11 +98,20 @@ class VoxController {
 		this.voiceProcessor.connect(this.voiceSilence);
 		this.voiceSilence.connect(this.voiceContext.destination);
 
-		this.isVoiceActive = true;
-		this.socket.send(JSON.stringify({ type: "audio_start" }));
-		this._updateVoiceUi(true);
-		this.onVoiceActiveChange(true);
-		this._stopPlayback();
+		const finalizeStart = (payload) => {
+			this.socket.send(JSON.stringify(payload));
+			this.isVoiceActive = true;
+			this._updateVoiceUi(true);
+			this.onVoiceActiveChange(true);
+			this._stopPlayback();
+		};
+		Promise.resolve(this.mcpReadyPromise)
+			.then(() => {
+				finalizeStart({ type: "audio_start", tools: this.mcpTools });
+			})
+			.catch(() => {
+				finalizeStart({ type: "audio_start" });
+			});
 	}
 
 	stopVoiceSession({ notifyServer }) {
@@ -136,6 +155,36 @@ class VoxController {
 		this.voiceUserEl = null;
 		this._updateVoiceUi(false);
 		this.onVoiceActiveChange(false);
+	}
+
+	initializeMcpClient() {
+		this.mcpClient = new McpClient();
+		this.mcpReadyPromise = this.mcpClient
+			.initialize()
+			.then(() => this.loadMcpTools())
+			.catch((error) => {
+				console.error("Failed to initialize MCP client:", error);
+			});
+	}
+
+	async loadMcpTools() {
+		const toolsResponse = await this.mcpClient.listTools();
+		const tools = toolsResponse?.result?.tools || [];
+		const serverTools = new Set(
+			this.toolRouteOverrides?.serverTools || []
+		);
+		this.mcpTools = tools.map((tool) => ({
+			type: "function",
+			name: tool.name,
+			description: tool.description || "",
+			parameters: tool.inputSchema || { type: "object", properties: {} }
+		}));
+		this.toolRouting = new Map(
+			tools.map((tool) => [
+				tool.name,
+				serverTools.has(tool.name) ? "server" : "client"
+			])
+		);
 	}
 
 	handleSocketMessage(payload) {
@@ -190,7 +239,79 @@ class VoxController {
 			return true;
 		}
 
+		if (payload.type === "assistant_voice_tool_calls") {
+			this.queueToolCalls(payload.toolCalls || []);
+			this.executeToolQueue();
+			return true;
+		}
+
 		return false;
+	}
+
+	queueToolCalls(toolCalls) {
+		for (const toolCall of toolCalls) {
+			let args = {};
+			if (toolCall.function?.arguments) {
+				try {
+					args = JSON.parse(toolCall.function.arguments);
+				} catch (error) {
+					console.error("Failed to parse tool arguments:", error);
+				}
+			}
+			this.toolQueue.push({
+				toolCallId: toolCall.call_id || toolCall.id,
+				name: toolCall.function?.name,
+				args
+			});
+		}
+	}
+
+	async executeToolQueue() {
+		if (this.toolQueue.length === 0 || this.socket.readyState !== WebSocket.OPEN) {
+			return;
+		}
+
+		const pendingCalls = [...this.toolQueue];
+		this.toolQueue = [];
+		const results = [];
+
+		for (const toolCall of pendingCalls) {
+			const route = this.toolRouting.get(toolCall.name) || "client";
+			if (route !== "client") {
+				results.push({
+					tool_call_id: toolCall.toolCallId,
+					name: toolCall.name,
+					content: JSON.stringify({
+						error: "UNSUPPORTED_TOOL_ROUTE",
+						message: "Tool is not available on the client."
+					})
+				});
+				continue;
+			}
+
+			try {
+				const toolResult = await this.mcpClient.callTool(
+					toolCall.name,
+					toolCall.args || {}
+				);
+				results.push({
+					tool_call_id: toolCall.toolCallId,
+					name: toolCall.name,
+					content: JSON.stringify(toolResult)
+				});
+			} catch (error) {
+				results.push({
+					tool_call_id: toolCall.toolCallId,
+					name: toolCall.name,
+					content: JSON.stringify({
+						error: "TOOL_CALL_FAILED",
+						message: error?.message || "Tool call failed."
+					})
+				});
+			}
+		}
+
+		this.socket.send(JSON.stringify({ type: "voice_tool_results", results }));
 	}
 
 	handleSocketClose() {

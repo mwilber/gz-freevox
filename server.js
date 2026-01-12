@@ -68,6 +68,14 @@ wss.on("connection", (ws) => {
 			return;
 		}
 
+		if (message.type === "voice_tool_results") {
+			const handledVoice = vox.handleMessage(message);
+			if (!handledVoice) {
+				ws.send(JSON.stringify({ type: "error", message: "Invalid message payload." }));
+			}
+			return;
+		}
+
 		const handled = vox.handleMessage(message);
 		if (!handled) {
 			ws.send(JSON.stringify({ type: "error", message: "Invalid message payload." }));
