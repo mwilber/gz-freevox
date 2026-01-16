@@ -35,7 +35,7 @@ class ChatController {
 		this.mcpReadyPromise = null;
 		this.toolQueue = [];
 		this.toolRouting = new Map();
-		this.toolRouteOverrides = getMcpConfig().toolRouting;
+		this.toolRouteOverrides = { serverTools: [] };
 
 		this._handleSubmit = this._handleSubmit.bind(this);
 		this.formEl.addEventListener("submit", this._handleSubmit);
@@ -85,9 +85,12 @@ class ChatController {
 	 * Initializes the MCP client and tool list.
 	 */
 	initializeMcpClient() {
-		this.mcpClient = new McpClient();
-		this.mcpReadyPromise = this.mcpClient
-			.initialize()
+		this.mcpReadyPromise = getMcpConfig()
+			.then((config) => {
+				this.toolRouteOverrides = config.toolRouting || { serverTools: [] };
+				this.mcpClient = new McpClient(config);
+				return this.mcpClient.initialize();
+			})
 			.then(() => this.loadMcpTools())
 			.catch((error) => {
 				console.error("Failed to initialize MCP client:", error);

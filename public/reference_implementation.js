@@ -41,7 +41,7 @@ export class ChatApp {
 		this.mcpTools = [];
 		this.mcpReadyPromise = null;
 		this.toolRouting = new Map();
-		this.toolRouteOverrides = getMcpConfig().toolRouting;
+		this.toolRouteOverrides = { serverTools: [] };
 		// Loop guard tracking
 		this.commandHistory = [];
 		this.maxRetries = maxRetries;
@@ -67,9 +67,12 @@ export class ChatApp {
 	}
 
 	initializeMcpClient() {
-		this.mcpClient = new McpClient();
-		this.mcpReadyPromise = this.mcpClient
-			.initialize()
+		this.mcpReadyPromise = getMcpConfig()
+			.then((config) => {
+				this.toolRouteOverrides = config.toolRouting || { serverTools: [] };
+				this.mcpClient = new McpClient(config);
+				return this.mcpClient.initialize();
+			})
 			.then(() => this.loadMcpTools())
 			.catch((error) => {
 				console.error("Failed to initialize MCP client:", error);

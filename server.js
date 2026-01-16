@@ -6,6 +6,7 @@ require("dotenv").config();
 
 const { ChatHandler } = require("./modules/chat");
 const { VoxHandler } = require("./modules/vox");
+const { mcpConfig } = require("./mcp.config");
 
 const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -22,6 +23,9 @@ if (!OPENAI_API_KEY) {
 
 const app = express();
 app.use(express.static(path.join(__dirname, "public")));
+app.get("/mcp-config", (req, res) => {
+	res.json(mcpConfig);
+});
 
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });

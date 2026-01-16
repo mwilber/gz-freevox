@@ -1,26 +1,57 @@
-// const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
-// const DEFAULT_LOCAL_URL = "http://localhost:3000/mcp";
-const DEFAULT_REMOTE_URL =
-  "https://gz-webmcp-21aba15ed44e.herokuapp.com/mcp";
-// For cross-origin MCP URLs, the server must expose "mcp-session-id" via CORS.
-const DEFAULT_TOOL_ROUTING = {
-  serverTools: [],
+const DEFAULT_CONFIG = {
+	servers: [
+		{
+			name: "webmcp",
+			url: "https://gz-webmcp-21aba15ed44e.herokuapp.com/mcp"
+		},
+		{
+			name: "rtm",
+			url: "https://gz-rtm-mcp-89ec15c486a9.herokuapp.com/mcp"
+		}
+	],
+	toolRouting: {
+		serverTools: []
+	}
 };
 
+let cachedConfigPromise = null;
+
 /**
- * @returns {{mcpUrl: string, toolRouting: object}}
+ * For cross-origin MCP URLs, the server must expose "mcp-session-id" via CORS.
+ * @returns {Promise<{servers: Array, toolRouting: object}>}
  */
 export function getMcpConfig() {
-  // const hostname = window.location.hostname;
-  // const origin = window.location.origin;
+	if (!cachedConfigPromise) {
+		cachedConfigPromise = fetch("/mcp-config")
+			.then((response) => {
+				if (!response.ok) {
+					throw new Error(`MCP config request failed: ${response.status}`);
+				}
+				return response.json();
+			})
+			.then((config) => normalizeConfig(config))
+			.catch((error) => {
+				console.warn("Failed to load MCP config, using defaults.", error);
+				return DEFAULT_CONFIG;
+			});
+	}
 
-  // if (LOCAL_HOSTS.has(hostname)) {
-  //   return { mcpUrl: DEFAULT_LOCAL_URL, toolRouting: DEFAULT_TOOL_ROUTING };
-  // }
+	return cachedConfigPromise;
+}
 
-  // if (origin && origin.startsWith("http")) {
-  //   return { mcpUrl: `${origin}/mcp`, toolRouting: DEFAULT_TOOL_ROUTING };
-  // }
-
-  return { mcpUrl: DEFAULT_REMOTE_URL, toolRouting: DEFAULT_TOOL_ROUTING };
+/**
+ * @param {object} config
+ * @returns {{servers: Array, toolRouting: object}}
+ */
+function normalizeConfig(config) {
+	const servers = Array.isArray(config?.servers) ? config.servers : [];
+	return {
+		...DEFAULT_CONFIG,
+		...config,
+		servers,
+		toolRouting: {
+			...DEFAULT_CONFIG.toolRouting,
+			...(config?.toolRouting || {})
+		}
+	};
 }

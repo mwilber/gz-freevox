@@ -45,7 +45,7 @@ class VoxController {
 		this.mcpReadyPromise = null;
 		this.toolQueue = [];
 		this.toolRouting = new Map();
-		this.toolRouteOverrides = getMcpConfig().toolRouting;
+		this.toolRouteOverrides = { serverTools: [] };
 
 		this._handleToggle = this._handleToggle.bind(this);
 		this.voiceToggle.addEventListener("click", this._handleToggle);
@@ -183,9 +183,12 @@ class VoxController {
 	 * Initializes the MCP client and tool list.
 	 */
 	initializeMcpClient() {
-		this.mcpClient = new McpClient();
-		this.mcpReadyPromise = this.mcpClient
-			.initialize()
+		this.mcpReadyPromise = getMcpConfig()
+			.then((config) => {
+				this.toolRouteOverrides = config.toolRouting || { serverTools: [] };
+				this.mcpClient = new McpClient(config);
+				return this.mcpClient.initialize();
+			})
 			.then(() => this.loadMcpTools())
 			.catch((error) => {
 				console.error("Failed to initialize MCP client:", error);
