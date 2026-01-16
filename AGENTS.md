@@ -7,6 +7,7 @@ FreeVox is a Node.js web app that enables a real-time, two-way conversation with
 - `server.js`: Express static server + WebSocket server. Wires chat + voice handlers and forwards WS messages.
 - `modules/chat.js`: Text chat handler (Responses API streaming).
 - `modules/vox.js`: Realtime voice handler (OpenAI Realtime WebSocket bridge + transcription).
+- `modules/db.js`: SQLite storage (users, conversations, messages) and CRUD helpers.
 - `public/`: Client UI and logic.
 	- `index.html`: App shell and layout.
 	- `styles.css`: Visual design.
@@ -38,11 +39,24 @@ Voice chat:
 7. When the user ends, the client sends `{ type: "audio_stop" }` and the server closes the realtime session.
 8. If tools are configured, the client sends them with `audio_start`; tool calls arrive as `{ type: "assistant_voice_tool_calls", toolCalls }` and results are returned as `{ type: "voice_tool_results", results }`.
 
+Conversation storage:
+1. A conversation is created on the first persisted message (text or voice) with title `Untitled Conversation`.
+2. The system prompt is stored once at conversation creation; user/assistant messages append after each response.
+3. After the first user + assistant exchange, the server generates a short title and updates the conversation.
+4. The server emits `{ type: "conversations_updated" }` to refresh the sidebar list, and `{ type: "conversation_started", conversation }` when a new conversation is created.
+
+Conversation switching:
+1. Client loads `/conversations/:id` and replaces the chat UI with stored messages (system messages hidden).
+2. Client sends `{ type: "conversation_select", conversationId }` to replace the in-memory history for the socket.
+3. Client can reset to a fresh in-memory history with `{ type: "conversation_new" }` without creating a DB record.
+
 ## Configuration
 - `.env` must include `OPENAI_API_KEY`.
 - `PORT` is optional (default 3000).
 - Models can be changed in `server.js` in the OpenAI request body.
-- Realtime voice settings can be set via `OPENAI_REALTIME_MODEL`, `OPENAI_REALTIME_VOICE`, and `OPENAI_REALTIME_PROMPT`.
+- Realtime voice settings can be set via `OPENAI_REALTIME_MODEL`, `OPENAI_REALTIME_VOICE`, `OPENAI_REALTIME_PROMPT`, and `OPENAI_REALTIME_TRANSCRIPTION_LANGUAGE` (default `en`).
+- SQLite configuration: `FREEVOX_USER_ID` (single-user ID for now) and `FREEVOX_DB_PATH` (default `freevox.sqlite`).
+- System prompt is loaded from `system-prompt.txt` at project root.
 - MCP endpoint + tool routing are set in `public/modules/mcp-config.js`.
 
 ## Development
@@ -54,6 +68,7 @@ Voice chat:
 ## Notes
 - History is in-memory per connection; it resets when the socket reconnects.
 - Error payloads are sent as `{ type: "error", message, detail? }`.
+- Realtime voice errors are forwarded as `{ type: "assistant_voice_error" }` and rendered in the chat stream.
 - Tool calls include both `id` and `call_id`; tool outputs must use `function_call_output` with the matching `call_id`.
 - If microphone capture fails, confirm browser permissions and prefer `http://localhost` or HTTPS.
 - Indentation uses tabs across project files.

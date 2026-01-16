@@ -10,8 +10,10 @@ class VoxHandler {
 	 * @param {string} options.voice
 	 * @param {string} options.systemPrompt
 	 * @param {string} options.transcriptionLanguage
+	 * @param {Function} options.onMessage
+	 * @param {string} options.voiceStyle
 	 */
-	constructor({ ws, history, apiKey, model, voice, systemPrompt, transcriptionLanguage }) {
+	constructor({ ws, history, apiKey, model, voice, systemPrompt, transcriptionLanguage, onMessage, voiceStyle }) {
 		this.ws = ws;
 		this.history = history;
 		this.apiKey = apiKey;
@@ -19,6 +21,8 @@ class VoxHandler {
 		this.voice = voice;
 		this.systemPrompt = systemPrompt;
 		this.transcriptionLanguage = transcriptionLanguage;
+		this.onMessage = onMessage;
+		this.voiceStyle = voiceStyle;
 		this.tools = [];
 		this.realtimeToolCalls = new Map();
 
@@ -72,6 +76,9 @@ class VoxHandler {
 			return;
 		}
 		this.history.push({ role: "assistant", content: this.pendingAssistantTranscript });
+		if (this.onMessage) {
+			this.onMessage({ role: "assistant", content: this.pendingAssistantTranscript });
+		}
 		this.pendingAssistantTranscript = "";
 		this.ws.send(JSON.stringify({ type: "assistant_voice_text_done" }));
 	}
@@ -97,7 +104,9 @@ class VoxHandler {
 				type: "session.update",
 				session: {
 					modalities: ["audio", "text"],
-					instructions: this.systemPrompt,
+					instructions: this.voiceStyle
+						? `${this.systemPrompt}\n\nVoice style: ${this.voiceStyle}`
+						: this.systemPrompt,
 					voice: this.voice,
 					input_audio_format: "pcm16",
 					output_audio_format: "pcm16",
@@ -302,6 +311,8 @@ class VoxHandler {
 				return;
 			}
 
+			console.log("Voice payload:", payload.type);
+
 			if (
 				payload.type === "conversation.item.input_audio_transcription.completed" ||
 				payload.type === "input_audio_transcription.completed"
@@ -309,6 +320,9 @@ class VoxHandler {
 				const transcript = payload.transcript || payload.text || this.pendingUserTranscript;
 				if (transcript && transcript !== this.lastUserTranscript) {
 					this.history.push({ role: "user", content: transcript });
+					if (this.onMessage) {
+						this.onMessage({ role: "user", content: transcript });
+					}
 					if (!this.pendingUserTranscriptSent) {
 						this.ws.send(JSON.stringify({ type: "user_voice_text_delta", delta: transcript }));
 					}
@@ -328,6 +342,9 @@ class VoxHandler {
 					const transcript = (textPart && textPart.text) || (audioPart && audioPart.transcript) || "";
 					if (transcript && transcript !== this.lastUserTranscript) {
 						this.history.push({ role: "user", content: transcript });
+						if (this.onMessage) {
+							this.onMessage({ role: "user", content: transcript });
+						}
 						this.ws.send(JSON.stringify({ type: "user_voice_text_delta", delta: transcript }));
 						this.ws.send(JSON.stringify({ type: "user_voice_text_done" }));
 						this.pendingUserTranscript = "";
@@ -335,6 +352,18 @@ class VoxHandler {
 						this.lastUserTranscript = transcript;
 					}
 				}
+				return;
+			}
+
+			if (payload.type === "error") {
+				const message = payload.error?.message || payload.message || "Voice error";
+				const code = payload.error?.code || payload.code || "";
+				this.ws.send(JSON.stringify({
+					type: "assistant_voice_error",
+					message,
+					code,
+					detail: payload.error || payload
+				}));
 				return;
 			}
 
@@ -346,6 +375,7 @@ class VoxHandler {
 			if (payload.type === "response.done") {
 				this.realtimeResponding = false;
 			}
+
 		});
 
 		this.realtimeSocket.on("close", () => {

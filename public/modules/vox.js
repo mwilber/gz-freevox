@@ -302,6 +302,24 @@ class VoxController {
 			return true;
 		}
 
+		if (payload.type === "assistant_voice_error") {
+			if (this.appendToolResult) {
+				const content = {
+					message: payload.message || "Voice error",
+					code: payload.code || undefined,
+					detail: payload.detail
+				};
+				this.appendToolResult("Voice error", content, {
+					variant: "error",
+					label: "Voice error"
+				});
+			} else if (this.appendMessage) {
+				const detail = payload.message || "Voice error";
+				this.appendMessage("System", detail, "assistant");
+			}
+			return true;
+		}
+
 		return false;
 	}
 

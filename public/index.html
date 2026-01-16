@@ -19,8 +19,15 @@
 				<div>
 					<p class="eyebrow">FreeVox</p>
 					<h1>Real-time LLM conversation</h1>
+					<p class="current-convo" id="currentConversationTitle">New conversation</p>
 				</div>
-				<div class="status" id="status">Connecting...</div>
+				<div class="header__actions">
+					<button type="button" class="menu-toggle" id="menuToggle" aria-expanded="false">
+						<span class="sr-only">Toggle conversations</span>
+						<span aria-hidden="true"></span>
+					</button>
+					<div class="status" id="status">Connecting...</div>
+				</div>
 			</header>
 
 			<section class="chat" id="chat"></section>
@@ -43,6 +50,17 @@
 				<button type="submit">Send</button>
 			</form>
 		</main>
+		<aside class="panel" id="conversationPanel" aria-hidden="true">
+			<div class="panel__header">
+				<h2>Conversations</h2>
+				<button type="button" class="panel__close" id="panelClose">Close</button>
+			</div>
+			<div class="panel__actions">
+				<button type="button" class="panel__new" id="newConversation">New Conversation</button>
+			</div>
+			<div class="panel__list" id="conversationList" role="list"></div>
+		</aside>
+		<div class="panel-backdrop" id="panelBackdrop" hidden></div>
 
 		<script type="module" src="client.js"></script>
 	</body>

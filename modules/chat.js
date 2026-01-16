@@ -7,12 +7,14 @@ class ChatHandler {
 	 * @param {Array} options.history
 	 * @param {string} options.apiKey
 	 * @param {string} [options.model]
+	 * @param {Function} [options.onMessage]
 	 */
-	constructor({ ws, history, apiKey, model = "gpt-4o-mini" }) {
+	constructor({ ws, history, apiKey, model = "gpt-4o-mini", onMessage }) {
 		this.ws = ws;
 		this.history = history;
 		this.apiKey = apiKey;
 		this.model = model;
+		this.onMessage = onMessage;
 		this.tools = [];
 		this.pendingToolCalls = [];
 		this.pendingToolResults = [];
@@ -182,6 +184,9 @@ class ChatHandler {
 		}
 
 		this.history.push({ role: "user", content: message.text });
+		if (this.onMessage) {
+			this.onMessage({ role: "user", content: message.text });
+		}
 		if (Array.isArray(message.tools)) {
 			this.tools = message.tools;
 		}
@@ -211,6 +216,9 @@ class ChatHandler {
 		if (toolCalls.length > 0) {
 			if (assistantText) {
 				this.history.push({ role: "assistant", content: assistantText });
+				if (this.onMessage) {
+					this.onMessage({ role: "assistant", content: assistantText });
+				}
 			}
 			this.pendingToolCalls = toolCalls.map((toolCall) => ({
 				type: "function_call",
@@ -228,6 +236,9 @@ class ChatHandler {
 
 		if (assistantText) {
 			this.history.push({ role: "assistant", content: assistantText });
+			if (this.onMessage) {
+				this.onMessage({ role: "assistant", content: assistantText });
+			}
 		}
 	}
 
