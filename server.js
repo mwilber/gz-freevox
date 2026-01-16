@@ -12,6 +12,8 @@ const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL || "gpt-4o-realtime-preview-2024-12-17";
 const REALTIME_VOICE = process.env.OPENAI_REALTIME_VOICE || "alloy";
+const REALTIME_TRANSCRIPTION_LANGUAGE =
+	process.env.OPENAI_REALTIME_TRANSCRIPTION_LANGUAGE || "en";
 const REALTIME_SYSTEM_PROMPT =
 	process.env.OPENAI_REALTIME_PROMPT ||
 	"You are a concise, friendly assistant. Keep answers helpful and brief.";
@@ -50,7 +52,8 @@ wss.on("connection", (ws) => {
 		apiKey: OPENAI_API_KEY,
 		model: REALTIME_MODEL,
 		voice: REALTIME_VOICE,
-		systemPrompt: REALTIME_SYSTEM_PROMPT
+		systemPrompt: REALTIME_SYSTEM_PROMPT,
+		transcriptionLanguage: REALTIME_TRANSCRIPTION_LANGUAGE
 	});
 
 	ws.on("message", async (raw) => {

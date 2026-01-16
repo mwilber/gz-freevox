@@ -9,14 +9,16 @@ class VoxHandler {
 	 * @param {string} options.model
 	 * @param {string} options.voice
 	 * @param {string} options.systemPrompt
+	 * @param {string} options.transcriptionLanguage
 	 */
-	constructor({ ws, history, apiKey, model, voice, systemPrompt }) {
+	constructor({ ws, history, apiKey, model, voice, systemPrompt, transcriptionLanguage }) {
 		this.ws = ws;
 		this.history = history;
 		this.apiKey = apiKey;
 		this.model = model;
 		this.voice = voice;
 		this.systemPrompt = systemPrompt;
+		this.transcriptionLanguage = transcriptionLanguage;
 		this.tools = [];
 		this.realtimeToolCalls = new Map();
 
@@ -100,7 +102,8 @@ class VoxHandler {
 					input_audio_format: "pcm16",
 					output_audio_format: "pcm16",
 					input_audio_transcription: {
-						model: "gpt-4o-mini-transcribe"
+						model: "gpt-4o-mini-transcribe",
+						language: this.transcriptionLanguage
 					},
 					tools: this.tools.length ? this.tools : undefined,
 					turn_detection: {
