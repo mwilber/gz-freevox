@@ -64,7 +64,18 @@ function appendMessage(label, text, role) {
 
 	const body = document.createElement("div");
 	body.className = "message__body";
-	body.textContent = text;
+	wrapper.getRawText = () => body.dataset.rawText || "";
+	wrapper.updateBody = (nextText, { allowMarkdown = false } = {}) => {
+		body.dataset.rawText = nextText;
+		if (allowMarkdown && hasMarkdown(nextText)) {
+			body.innerHTML = renderMarkdown(nextText);
+			body.classList.add("message__body--markdown");
+		} else {
+			body.textContent = nextText;
+			body.classList.remove("message__body--markdown");
+		}
+	};
+	wrapper.updateBody(text, { allowMarkdown: true });
 
 	wrapper.appendChild(meta);
 	wrapper.appendChild(body);
@@ -72,6 +83,111 @@ function appendMessage(label, text, role) {
 	chat.scrollTop = chat.scrollHeight;
 
 	return wrapper;
+}
+
+function hasMarkdown(text) {
+	return /```|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|^#{1,6}\s+|^\s*[-*]\s+|\[[^\]]+\]\([^)]+\)/m.test(
+		text
+	);
+}
+
+function renderMarkdown(text) {
+	if (!text) {
+		return "";
+	}
+
+	const codeBlocks = [];
+	const textWithPlaceholders = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+		const index = codeBlocks.length;
+		codeBlocks.push({ lang, code });
+		return `@@CODEBLOCK_${index}@@`;
+	});
+
+	const escaped = escapeHtml(textWithPlaceholders);
+	const lines = escaped.split("\n");
+	let html = "";
+	let inList = false;
+
+	for (const line of lines) {
+		const codePlaceholder = line.match(/^@@CODEBLOCK_(\d+)@@$/);
+		if (codePlaceholder) {
+			if (inList) {
+				html += "</ul>";
+				inList = false;
+			}
+			const block = codeBlocks[Number(codePlaceholder[1])];
+			html += renderCodeBlock(block);
+			continue;
+		}
+
+		const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+		if (headingMatch) {
+			if (inList) {
+				html += "</ul>";
+				inList = false;
+			}
+			const level = headingMatch[1].length;
+			html += `<h${level}>${applyInlineMarkdown(headingMatch[2])}</h${level}>`;
+			continue;
+		}
+
+		const listMatch = line.match(/^\s*[-*]\s+(.*)$/);
+		if (listMatch) {
+			if (!inList) {
+				html += "<ul>";
+				inList = true;
+			}
+			html += `<li>${applyInlineMarkdown(listMatch[1])}</li>`;
+			continue;
+		}
+
+		if (line.trim() === "") {
+			if (inList) {
+				html += "</ul>";
+				inList = false;
+			}
+			continue;
+		}
+
+		if (inList) {
+			html += "</ul>";
+			inList = false;
+		}
+
+		html += `<p>${applyInlineMarkdown(line)}</p>`;
+	}
+
+	if (inList) {
+		html += "</ul>";
+	}
+
+	return html;
+}
+
+function applyInlineMarkdown(text) {
+	let output = text;
+	output = output.replace(/`([^`]+)`/g, "<code>$1</code>");
+	output = output.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+	output = output.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+	output = output.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+	return output;
+}
+
+function renderCodeBlock(block) {
+	if (!block) {
+		return "";
+	}
+	const language = block.lang ? ` class="language-${escapeHtml(block.lang)}"` : "";
+	return `<pre><code${language}>${escapeHtml(block.code)}</code></pre>`;
+}
+
+function escapeHtml(text) {
+	return text
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
 }
 
 function updateComposerState() {

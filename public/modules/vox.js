@@ -228,12 +228,21 @@ class VoxController {
 			if (!this.voiceAssistantEl) {
 				this.voiceAssistantEl = this.appendMessage("Assistant", "", "assistant");
 			}
-			this.voiceAssistantEl.querySelector(".message__body").textContent += payload.delta;
+			this.voiceAssistantEl.updateBody(
+				this.voiceAssistantEl.getRawText() + payload.delta,
+				{ allowMarkdown: false }
+			);
 			this.chatEl.scrollTop = this.chatEl.scrollHeight;
 			return true;
 		}
 
 		if (payload.type === "assistant_voice_text_done") {
+			if (this.voiceAssistantEl) {
+				this.voiceAssistantEl.updateBody(
+					this.voiceAssistantEl.getRawText(),
+					{ allowMarkdown: true }
+				);
+			}
 			this.voiceAssistantEl = null;
 			return true;
 		}
@@ -249,12 +258,21 @@ class VoxController {
 			if (!this.voiceUserEl) {
 				this.voiceUserEl = this.appendMessage("You", "", "user");
 			}
-			this.voiceUserEl.querySelector(".message__body").textContent += payload.delta;
+			this.voiceUserEl.updateBody(
+				this.voiceUserEl.getRawText() + payload.delta,
+				{ allowMarkdown: false }
+			);
 			this.chatEl.scrollTop = this.chatEl.scrollHeight;
 			return true;
 		}
 
 		if (payload.type === "user_voice_text_done") {
+			if (this.voiceUserEl) {
+				this.voiceUserEl.updateBody(
+					this.voiceUserEl.getRawText(),
+					{ allowMarkdown: true }
+				);
+			}
 			this.voiceUserEl = null;
 			return true;
 		}

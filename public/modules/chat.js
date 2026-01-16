@@ -130,12 +130,21 @@ class ChatController {
 			if (!this.currentAssistantEl) {
 				this.currentAssistantEl = this.appendMessage("Assistant", "", "assistant");
 			}
-			this.currentAssistantEl.querySelector(".message__body").textContent += payload.delta;
+			this.currentAssistantEl.updateBody(
+				this.currentAssistantEl.getRawText() + payload.delta,
+				{ allowMarkdown: false }
+			);
 			this.chatEl.scrollTop = this.chatEl.scrollHeight;
 			return true;
 		}
 
 		if (payload.type === "assistant_done") {
+			if (this.currentAssistantEl) {
+				this.currentAssistantEl.updateBody(
+					this.currentAssistantEl.getRawText(),
+					{ allowMarkdown: true }
+				);
+			}
 			this._setStreaming(false);
 			this.currentAssistantEl = null;
 			return true;
