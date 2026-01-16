@@ -86,6 +86,52 @@ function appendMessage(label, text, role) {
 	return wrapper;
 }
 
+function appendToolResult(toolName, content) {
+	const wrapper = document.createElement("div");
+	wrapper.className = "message message--tool";
+
+	const summary = document.createElement("button");
+	summary.type = "button";
+	summary.className = "tool-result__summary";
+	summary.setAttribute("aria-expanded", "false");
+	summary.textContent = `Tool: ${toolName}`;
+
+	const body = document.createElement("pre");
+	body.className = "tool-result__content";
+	body.hidden = true;
+	body.textContent = formatToolContent(content);
+
+	summary.addEventListener("click", () => {
+		const nextHidden = !body.hidden;
+		body.hidden = nextHidden;
+		summary.setAttribute("aria-expanded", String(!nextHidden));
+	});
+
+	wrapper.appendChild(summary);
+	wrapper.appendChild(body);
+	chat.appendChild(wrapper);
+	chat.scrollTop = chat.scrollHeight;
+
+	return wrapper;
+}
+
+function formatToolContent(content) {
+	if (typeof content !== "string") {
+		try {
+			return JSON.stringify(content, null, 2);
+		} catch (err) {
+			return String(content);
+		}
+	}
+
+	try {
+		const parsed = JSON.parse(content);
+		return JSON.stringify(parsed, null, 2);
+	} catch (err) {
+		return content;
+	}
+}
+
 function updateComposerState() {
 	const disabled = isTextStreaming || isVoiceActive;
 	input.disabled = disabled;
@@ -110,6 +156,7 @@ connect();
 chatController = new ChatController({
 	socket,
 	appendMessage,
+	appendToolResult,
 	chatEl: chat,
 	formEl: form,
 	inputEl: input,
@@ -120,6 +167,7 @@ chatController = new ChatController({
 voxController = new VoxController({
 	socket,
 	appendMessage,
+	appendToolResult,
 	chatEl: chat,
 	voiceToggle,
 	voiceStatus,

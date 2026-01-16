@@ -6,6 +6,7 @@ class ChatController {
 	 * @param {object} options
 	 * @param {WebSocket} options.socket
 	 * @param {Function} options.appendMessage
+	 * @param {Function} [options.appendToolResult]
 	 * @param {HTMLElement} options.chatEl
 	 * @param {HTMLFormElement} options.formEl
 	 * @param {HTMLInputElement} options.inputEl
@@ -15,6 +16,7 @@ class ChatController {
 	constructor({
 		socket,
 		appendMessage,
+		appendToolResult,
 		chatEl,
 		formEl,
 		inputEl,
@@ -23,6 +25,7 @@ class ChatController {
 	}) {
 		this.socket = socket;
 		this.appendMessage = appendMessage;
+		this.appendToolResult = appendToolResult;
 		this.chatEl = chatEl;
 		this.formEl = formEl;
 		this.inputEl = inputEl;
@@ -195,14 +198,18 @@ class ChatController {
 		for (const toolCall of pendingCalls) {
 			const route = this.toolRouting.get(toolCall.name) || "client";
 			if (route !== "client") {
+				const content = JSON.stringify({
+					error: "UNSUPPORTED_TOOL_ROUTE",
+					message: "Tool is not available on the client."
+				});
 				results.push({
 					tool_call_id: toolCall.toolCallId,
 					name: toolCall.name,
-					content: JSON.stringify({
-						error: "UNSUPPORTED_TOOL_ROUTE",
-						message: "Tool is not available on the client."
-					})
+					content
 				});
+				if (this.appendToolResult) {
+					this.appendToolResult(toolCall.name, content);
+				}
 				continue;
 			}
 
@@ -211,20 +218,28 @@ class ChatController {
 					toolCall.name,
 					toolCall.args || {}
 				);
+				const content = JSON.stringify(toolResult);
 				results.push({
 					tool_call_id: toolCall.toolCallId,
 					name: toolCall.name,
-					content: JSON.stringify(toolResult)
+					content
 				});
+				if (this.appendToolResult) {
+					this.appendToolResult(toolCall.name, content);
+				}
 			} catch (error) {
+				const content = JSON.stringify({
+					error: "TOOL_CALL_FAILED",
+					message: error?.message || "Tool call failed."
+				});
 				results.push({
 					tool_call_id: toolCall.toolCallId,
 					name: toolCall.name,
-					content: JSON.stringify({
-						error: "TOOL_CALL_FAILED",
-						message: error?.message || "Tool call failed."
-					})
+					content
 				});
+				if (this.appendToolResult) {
+					this.appendToolResult(toolCall.name, content);
+				}
 			}
 		}
 
