@@ -140,9 +140,16 @@ class McpServerClient {
 	 * @returns {object}
 	 */
 	_buildHeaders(headers) {
-		return {
+		const baseHeaders = {
 			...(this.config.headers || {}),
 			...headers
+		};
+		const userToken = this.config.userToken;
+		if (userToken && !baseHeaders["x-user-token"] && !baseHeaders.Authorization) {
+			baseHeaders["x-user-token"] = userToken;
+		}
+		return {
+			...baseHeaders
 		};
 	}
 }

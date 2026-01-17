@@ -1,3 +1,5 @@
+const RTM_USER_TOKEN = process.env.RTM_USER_TOKEN;
+
 const mcpConfig = {
 	servers: [
 		// {
@@ -10,7 +12,8 @@ const mcpConfig = {
 		},
 		{
 			name: "rtm",
-			url: "https://gz-rtm-mcp-89ec15c486a9.herokuapp.com/mcp"
+			url: "https://gz-rtm-mcp-89ec15c486a9.herokuapp.com/mcp",
+			userToken: RTM_USER_TOKEN
 		}
 	],
 	toolRouting: {
