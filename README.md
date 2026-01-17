@@ -33,7 +33,7 @@ Visit `http://localhost:3000`.
 - Click "End voice" to finish the conversation.
 - Voice transcripts for both sides appear in the chat history as standard messages.
 - If MCP tools are configured, the voice session exposes the same tools and executes tool calls via the browser MCP client.
-- Optional configuration: `OPENAI_REALTIME_MODEL`, `OPENAI_REALTIME_VOICE`, and `OPENAI_REALTIME_PROMPT` in `.env`.
+- Optional configuration: `OPENAI_REALTIME_MODEL` and `OPENAI_REALTIME_VOICE` in `.env`.
 
 ## MCP tools (text chat)
 

@@ -54,7 +54,7 @@ Conversation switching:
 - `.env` must include `OPENAI_API_KEY`.
 - `PORT` is optional (default 3000).
 - Models can be changed in `server.js` in the OpenAI request body.
-- Realtime voice settings can be set via `OPENAI_REALTIME_MODEL`, `OPENAI_REALTIME_VOICE`, `OPENAI_REALTIME_PROMPT`, and `OPENAI_REALTIME_TRANSCRIPTION_LANGUAGE` (default `en`).
+- Realtime voice settings can be set via `OPENAI_REALTIME_MODEL`, `OPENAI_REALTIME_VOICE`, and `OPENAI_REALTIME_TRANSCRIPTION_LANGUAGE` (default `en`).
 - SQLite configuration: `FREEVOX_USER_ID` (single-user ID for now) and `FREEVOX_DB_PATH` (default `freevox.sqlite`).
 - System prompt is loaded from `system-prompt.txt` at project root.
 - MCP endpoint + tool routing are set in `public/modules/mcp-config.js`.
