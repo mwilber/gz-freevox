@@ -71,6 +71,7 @@ Conversation switching:
 - Realtime voice errors are forwarded as `{ type: "assistant_voice_error" }` and rendered in the chat stream.
 - Tool calls include both `id` and `call_id`; tool outputs must use `function_call_output` with the matching `call_id`.
 - If microphone capture fails, confirm browser permissions and prefer `http://localhost` or HTTPS.
+- Heroku deploys use `Procfile` with `web: node server.js`; set config vars for all `.env` values and consider `FREEVOX_DB_PATH` under `/tmp` since dyno filesystems are ephemeral.
 - Indentation uses tabs across project files.
 
 ## Commit Messages

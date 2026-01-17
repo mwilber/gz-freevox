@@ -1,0 +1,28 @@
+{
+	"name": "freevox",
+	"description": "Real-time two-way LLM conversation using OpenAI and WebSockets",
+	"repository": "",
+	"keywords": [
+		"node",
+		"express",
+		"websocket",
+		"openai"
+	],
+	"env": {
+		"OPENAI_REALTIME_MODEL": {
+			"description": "Realtime model (e.g., gpt-4o-realtime-preview)"
+		},
+		"OPENAI_REALTIME_VOICE": {
+			"description": "Voice for realtime responses (e.g., alloy)"
+		},
+		"OPENAI_REALTIME_TRANSCRIPTION_LANGUAGE": {
+			"description": "Language for realtime transcription (default en)"
+		},
+		"FREEVOX_USER_ID": {
+			"description": "Single-user ID used by SQLite (default 1)"
+		},
+		"FREEVOX_DB_PATH": {
+			"description": "SQLite database path (default freevox.sqlite)"
+		}
+	}
+}
