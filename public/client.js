@@ -18,6 +18,9 @@ const settingsButton = document.getElementById("settingsButton");
 const settingsModal = document.getElementById("settingsModal");
 const settingsClose = document.getElementById("settingsClose");
 const settingsBackdrop = document.getElementById("settingsBackdrop");
+const openaiApiKeyInput = document.getElementById("openaiApiKeyInput");
+const rtmUserTokenInput = document.getElementById("rtmUserTokenInput");
+const settingsSave = document.getElementById("settingsSave");
 
 let socket;
 let isTextStreaming = false;
@@ -26,6 +29,7 @@ let chatController;
 let voxController;
 let currentConversationId = null;
 let openConversationMenu = null;
+const isProduction = !["localhost", "127.0.0.1"].includes(window.location.hostname);
 const conversationDumpRequests = new Map();
 
 function requestConversationDump() {
@@ -45,11 +49,12 @@ function connect() {
 	const protocol = window.location.protocol === "https:" ? "wss" : "ws";
 	socket = new WebSocket(`${protocol}://${window.location.host}`);
 
-	socket.addEventListener("open", () => {
-		statusEl.textContent = "Connected";
-		statusEl.style.color = "#3c6e3c";
-		refreshConversations();
-	});
+socket.addEventListener("open", () => {
+	statusEl.textContent = "Connected";
+	statusEl.style.color = "#3c6e3c";
+	sendSettingsUpdate();
+	refreshConversations();
+});
 
 	socket.addEventListener("close", () => {
 		statusEl.textContent = "Disconnected";
@@ -242,6 +247,38 @@ function toggleSettings(nextOpen) {
 		? nextOpen
 		: settingsModal.hasAttribute("hidden");
 	settingsModal.toggleAttribute("hidden", !isOpen);
+}
+
+function loadSettingsFields() {
+	if (openaiApiKeyInput) {
+		openaiApiKeyInput.value = localStorage.getItem("OPENAI_API_KEY") || "";
+	}
+	if (rtmUserTokenInput) {
+		rtmUserTokenInput.value = localStorage.getItem("RTM_USER_TOKEN") || "";
+	}
+}
+
+function saveSettingsFields() {
+	if (openaiApiKeyInput) {
+		localStorage.setItem("OPENAI_API_KEY", openaiApiKeyInput.value || "");
+	}
+	if (rtmUserTokenInput) {
+		localStorage.setItem("RTM_USER_TOKEN", rtmUserTokenInput.value || "");
+	}
+}
+
+function sendSettingsUpdate() {
+	if (!socket || socket.readyState !== WebSocket.OPEN) {
+		return;
+	}
+	const openaiApiKey = localStorage.getItem("OPENAI_API_KEY") || "";
+	if (!openaiApiKey) {
+		return;
+	}
+	socket.send(JSON.stringify({
+		type: "settings_update",
+		openaiApiKey
+	}));
 }
 
 async function refreshConversations() {
@@ -474,6 +511,7 @@ if (newConversationButton) {
 
 if (settingsButton) {
 	settingsButton.addEventListener("click", () => {
+		loadSettingsFields();
 		toggleSettings(true);
 	});
 }
@@ -486,6 +524,14 @@ if (settingsClose) {
 
 if (settingsBackdrop) {
 	settingsBackdrop.addEventListener("click", () => {
+		toggleSettings(false);
+	});
+}
+
+if (settingsSave) {
+	settingsSave.addEventListener("click", () => {
+		saveSettingsFields();
+		sendSettingsUpdate();
 		toggleSettings(false);
 	});
 }

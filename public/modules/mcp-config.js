@@ -48,10 +48,30 @@ function normalizeConfig(config) {
 	return {
 		...DEFAULT_CONFIG,
 		...config,
-		servers,
+		servers: applyLocalOverrides(servers),
 		toolRouting: {
 			...DEFAULT_CONFIG.toolRouting,
 			...(config?.toolRouting || {})
 		}
 	};
+}
+
+/**
+ * @param {Array} servers
+ * @returns {Array}
+ */
+function applyLocalOverrides(servers) {
+	const rtmUserToken = localStorage.getItem("RTM_USER_TOKEN");
+	if (!rtmUserToken) {
+		return servers;
+	}
+	return servers.map((server) => {
+		if (server?.name !== "rtm") {
+			return server;
+		}
+		return {
+			...server,
+			userToken: rtmUserToken
+		};
+	});
 }

@@ -83,7 +83,17 @@
 					<button type="button" class="settings-modal__close" id="settingsClose">Close</button>
 				</header>
 				<div class="settings-modal__body">
-					<p>Settings go here.</p>
+					<label class="settings-field">
+						<span>OpenAI API Key</span>
+						<input type="password" id="openaiApiKeyInput" autocomplete="off" />
+					</label>
+					<label class="settings-field">
+						<span>RTM User Token</span>
+						<input type="password" id="rtmUserTokenInput" autocomplete="off" />
+					</label>
+				</div>
+				<div class="settings-modal__actions">
+					<button type="button" class="settings-modal__save" id="settingsSave">Save</button>
 				</div>
 			</div>
 			<div class="settings-modal__backdrop" id="settingsBackdrop"></div>

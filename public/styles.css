@@ -334,6 +334,29 @@ body {
 	color: var(--muted);
 }
 
+.settings-field {
+	display: grid;
+	gap: 6px;
+	font-size: 0.9rem;
+	color: var(--muted);
+}
+
+.settings-field input {
+	width: 100%;
+}
+
+.settings-modal__actions {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.settings-modal__save {
+	background: var(--accent);
+	color: #fffaf3;
+	padding: 10px 18px;
+	border-radius: 12px;
+}
+
 .eyebrow {
 	text-transform: uppercase;
 	letter-spacing: 0.24em;

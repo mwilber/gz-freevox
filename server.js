@@ -45,13 +45,12 @@ function buildDateTimeSystemMessage() {
 }
 
 if (!OPENAI_API_KEY) {
-	console.error("Missing OPENAI_API_KEY in environment.");
-	process.exit(1);
+	console.warn("Missing OPENAI_API_KEY in environment. Waiting for client-provided key.");
 }
 
 const TITLE_MODEL = "gpt-4o-mini";
 
-async function generateConversationTitle({ userMessage, assistantMessage }) {
+async function generateConversationTitle({ userMessage, assistantMessage, apiKey }) {
 	const prompt = [
 		{
 			role: "system",
@@ -65,7 +64,7 @@ async function generateConversationTitle({ userMessage, assistantMessage }) {
 	const response = await fetch("https://api.openai.com/v1/responses", {
 		method: "POST",
 		headers: {
-			Authorization: `Bearer ${OPENAI_API_KEY}`,
+			Authorization: `Bearer ${apiKey || OPENAI_API_KEY}`,
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
@@ -148,6 +147,7 @@ wss.on("connection", (ws) => {
 	let firstAssistantMessage = "";
 	let titleRequested = false;
 	let systemPromptWithDate = buildSystemPromptWithDate();
+	let openaiApiKey = OPENAI_API_KEY;
 
 	const history = [
 		{
@@ -202,7 +202,8 @@ wss.on("connection", (ws) => {
 				try {
 					const title = await generateConversationTitle({
 						userMessage: firstUserMessage,
-						assistantMessage: firstAssistantMessage
+						assistantMessage: firstAssistantMessage,
+						apiKey: openaiApiKey
 					});
 					if (title) {
 						db.updateConversationTitle({ conversationId, title });
@@ -238,6 +239,17 @@ wss.on("connection", (ws) => {
 		voiceStyle: REALTIME_VOICE_STYLE
 	});
 
+	const ensureApiKey = () => {
+		if (openaiApiKey) {
+			return true;
+		}
+		ws.send(JSON.stringify({
+			type: "error",
+			message: "Missing OpenAI API key. Add it in Settings to continue."
+		}));
+		return false;
+	};
+
 	ws.on("message", async (raw) => {
 		let message;
 		try {
@@ -253,6 +265,9 @@ wss.on("connection", (ws) => {
 				return;
 			}
 
+			if (message.type === "user_message" && !ensureApiKey()) {
+				return;
+			}
 			await chat.handleMessage(message);
 			return;
 		}
@@ -264,6 +279,15 @@ wss.on("connection", (ws) => {
 				requestId: message.requestId || null,
 				messages
 			}));
+			return;
+		}
+
+		if (message.type === "settings_update") {
+			if (typeof message.openaiApiKey === "string" && message.openaiApiKey.trim()) {
+				openaiApiKey = message.openaiApiKey.trim();
+				chat.apiKey = openaiApiKey;
+				vox.apiKey = openaiApiKey;
+			}
 			return;
 		}
 
@@ -329,6 +353,9 @@ wss.on("connection", (ws) => {
 		}
 
 		if (message.type === "voice_tool_results") {
+			if (!ensureApiKey()) {
+				return;
+			}
 			const handledVoice = vox.handleMessage(message);
 			if (!handledVoice) {
 				ws.send(JSON.stringify({ type: "error", message: "Invalid message payload." }));
@@ -336,6 +363,9 @@ wss.on("connection", (ws) => {
 			return;
 		}
 
+		if (!ensureApiKey()) {
+			return;
+		}
 		const handled = vox.handleMessage(message);
 		if (!handled) {
 			ws.send(JSON.stringify({ type: "error", message: "Invalid message payload." }));
