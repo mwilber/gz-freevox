@@ -30,6 +30,7 @@ class VoxHandler {
 		this.realtimeReady = false;
 		this.realtimeQueue = [];
 		this.realtimeResponding = false;
+		this.realtimeCancelling = false;
 		this.pendingUserTranscript = "";
 		this.pendingUserTranscriptSent = false;
 		this.pendingAssistantTranscript = "";
@@ -150,7 +151,7 @@ class VoxHandler {
 				if (this.realtimeResponding) {
 					this._sendRealtime({ type: "response.cancel" });
 					this.ws.send(JSON.stringify({ type: "assistant_audio_interrupt" }));
-					this.realtimeResponding = false;
+					this.realtimeCancelling = true;
 					this.pendingAssistantTranscript = "";
 				}
 				return;
@@ -234,6 +235,9 @@ class VoxHandler {
 				this._sendRealtime({ type: "input_audio_buffer.commit" });
 				this.bufferHasAudio = false;
 				if (!this.realtimeResponding) {
+					if (this.realtimeCancelling) {
+						return;
+					}
 					this._sendRealtime({
 						type: "response.create",
 						response: {
@@ -367,11 +371,18 @@ class VoxHandler {
 
 			if (payload.type === "response.completed") {
 				this.realtimeResponding = false;
+				this.realtimeCancelling = false;
 				this._commitAssistantTranscript();
 			}
 
 			if (payload.type === "response.done") {
 				this.realtimeResponding = false;
+				this.realtimeCancelling = false;
+			}
+
+			if (payload.type === "response.cancelled") {
+				this.realtimeResponding = false;
+				this.realtimeCancelling = false;
 			}
 
 		});
@@ -381,6 +392,7 @@ class VoxHandler {
 			this.realtimeReady = false;
 			this.realtimeQueue = [];
 			this.realtimeResponding = false;
+			this.realtimeCancelling = false;
 			this.pendingUserTranscript = "";
 			this.pendingUserTranscriptSent = false;
 			this.pendingAssistantTranscript = "";
@@ -408,6 +420,7 @@ class VoxHandler {
 		this.realtimeReady = false;
 		this.realtimeQueue = [];
 		this.realtimeResponding = false;
+		this.realtimeCancelling = false;
 		this.pendingUserTranscript = "";
 		this.pendingUserTranscriptSent = false;
 		this.pendingAssistantTranscript = "";

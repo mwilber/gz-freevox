@@ -40,6 +40,8 @@ class VoxController {
 		this.playbackNodes = [];
 		this.voiceAssistantEl = null;
 		this.voiceUserEl = null;
+		this.isAssistantSpeaking = false;
+		this.suppressAssistantAudio = false;
 		this.mcpClient = null;
 		this.mcpTools = [];
 		this.mcpReadyPromise = null;
@@ -248,8 +250,14 @@ class VoxController {
 		}
 
 		if (payload.type === "user_voice_start") {
+			this.suppressAssistantAudio = true;
+			if (this.isAssistantSpeaking || this.playbackNodes.length > 0) {
+				this._stopPlayback();
+			}
 			if (!this.voiceUserEl) {
-				this.voiceUserEl = this.appendMessage("You", "", "user");
+				this.voiceUserEl = this.appendMessage("You", "…", "user");
+			} else {
+				this.voiceUserEl.updateBody("…", { allowMarkdown: false });
 			}
 			return true;
 		}
@@ -258,8 +266,10 @@ class VoxController {
 			if (!this.voiceUserEl) {
 				this.voiceUserEl = this.appendMessage("You", "", "user");
 			}
+			const currentText = this.voiceUserEl.getRawText();
+			const nextText = currentText === "…" ? payload.delta : currentText + payload.delta;
 			this.voiceUserEl.updateBody(
-				this.voiceUserEl.getRawText() + payload.delta,
+				nextText,
 				{ allowMarkdown: false }
 			);
 			this.chatEl.scrollTop = this.chatEl.scrollHeight;
@@ -267,6 +277,7 @@ class VoxController {
 		}
 
 		if (payload.type === "user_voice_text_done") {
+			this.suppressAssistantAudio = false;
 			if (this.voiceUserEl) {
 				this.voiceUserEl.updateBody(
 					this.voiceUserEl.getRawText(),
@@ -278,17 +289,25 @@ class VoxController {
 		}
 
 		if (payload.type === "assistant_audio_delta") {
+			if (this.suppressAssistantAudio) {
+				return true;
+			}
+			this.isAssistantSpeaking = true;
 			this._queueAudioPlayback(payload.audio || "");
 			return true;
 		}
 
 		if (payload.type === "assistant_audio_interrupt") {
+			this.suppressAssistantAudio = false;
+			this.isAssistantSpeaking = false;
 			this._stopPlayback();
 			this.voiceAssistantEl = null;
 			return true;
 		}
 
 		if (payload.type === "assistant_audio_done") {
+			this.suppressAssistantAudio = false;
+			this.isAssistantSpeaking = false;
 			this.playbackTime = Math.max(this.playbackTime, this.playbackContext ? this.playbackContext.currentTime : 0);
 			return true;
 		}
@@ -513,6 +532,7 @@ class VoxController {
 			}
 		});
 		this.playbackNodes = [];
+		this.isAssistantSpeaking = false;
 		this.playbackTime = this.playbackContext ? this.playbackContext.currentTime : 0;
 	}
 
