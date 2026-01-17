@@ -39,18 +39,19 @@ body {
 	z-index: 1;
 	max-width: 860px;
 	margin: 0 auto;
-	padding: 48px 24px 32px;
+	padding: 24px 16px 20px;
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
-	gap: 24px;
+	gap: 16px;
 }
 
 .app__header {
 	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
 	justify-content: space-between;
-	align-items: flex-end;
-	gap: 24px;
+	gap: 16px;
 }
 
 .header__actions {
@@ -283,7 +284,7 @@ h1 {
 
 .status {
 	background: var(--panel);
-	padding: 10px 16px;
+	padding: 8px 12px;
 	border-radius: 999px;
 	font-size: 0.85rem;
 	color: var(--muted);
@@ -294,22 +295,22 @@ h1 {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
-	gap: 18px;
-	padding: 26px;
+	gap: 14px;
+	padding: 18px;
 	border-radius: var(--radius);
 	background: var(--panel);
 	box-shadow: var(--shadow);
 	overflow-y: auto;
-	max-height: 60vh;
+	min-height: 40vh;
 }
 
 .message {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	padding: 16px 18px;
+	padding: 14px 16px;
 	border-radius: 18px;
-	max-width: 75%;
+	max-width: 100%;
 	line-height: 1.5;
 	animation: rise 220ms ease-out;
 }
@@ -464,8 +465,8 @@ h1 {
 .composer {
 	display: grid;
 	grid-template-columns: 1fr auto auto;
-	gap: 16px;
-	padding: 18px;
+	gap: 12px;
+	padding: 14px;
 	border-radius: var(--radius);
 	background: var(--panel);
 	box-shadow: var(--shadow);
@@ -565,29 +566,31 @@ button:disabled {
 	}
 }
 
-@media (max-width: 720px) {
+@media (min-width: 720px) {
 	.app {
-		padding: 32px 18px 24px;
+		padding: 48px 24px 32px;
+		gap: 24px;
 	}
 
 	.app__header {
-		flex-direction: column;
-		align-items: flex-start;
+		flex-direction: row;
+		align-items: flex-end;
+		gap: 24px;
 	}
 
 	.chat {
-		max-height: 55vh;
+		max-height: 60vh;
+		padding: 26px;
+		gap: 18px;
 	}
 
 	.message {
-		max-width: 100%;
+		max-width: 75%;
+		padding: 16px 18px;
 	}
 
 	.composer {
-		grid-template-columns: 1fr;
-	}
-
-	button {
-		width: 100%;
+		gap: 16px;
+		padding: 18px;
 	}
 }

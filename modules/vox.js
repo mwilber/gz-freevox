@@ -311,8 +311,6 @@ class VoxHandler {
 				return;
 			}
 
-			console.log("Voice payload:", payload.type);
-
 			if (
 				payload.type === "conversation.item.input_audio_transcription.completed" ||
 				payload.type === "input_audio_transcription.completed"
