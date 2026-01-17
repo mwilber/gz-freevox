@@ -148,6 +148,9 @@ wss.on("connection", (ws) => {
 	let titleRequested = false;
 	let systemPromptWithDate = buildSystemPromptWithDate();
 	let openaiApiKey = OPENAI_API_KEY;
+	let realtimeModel = REALTIME_MODEL;
+	let realtimeVoice = REALTIME_VOICE;
+	let realtimeVoiceStyle = REALTIME_VOICE_STYLE;
 
 	const history = [
 		{
@@ -231,12 +234,12 @@ wss.on("connection", (ws) => {
 		ws,
 		history,
 		apiKey: OPENAI_API_KEY,
-		model: REALTIME_MODEL,
-		voice: REALTIME_VOICE,
+		model: realtimeModel,
+		voice: realtimeVoice,
 		systemPrompt: systemPromptWithDate,
 		transcriptionLanguage: REALTIME_TRANSCRIPTION_LANGUAGE,
 		onMessage: persistMessage,
-		voiceStyle: REALTIME_VOICE_STYLE
+		voiceStyle: realtimeVoiceStyle
 	});
 
 	const ensureApiKey = () => {
@@ -287,6 +290,18 @@ wss.on("connection", (ws) => {
 				openaiApiKey = message.openaiApiKey.trim();
 				chat.apiKey = openaiApiKey;
 				vox.apiKey = openaiApiKey;
+			}
+			if (typeof message.realtimeModel === "string" && message.realtimeModel.trim()) {
+				realtimeModel = message.realtimeModel.trim();
+				vox.model = realtimeModel;
+			}
+			if (typeof message.realtimeVoice === "string" && message.realtimeVoice.trim()) {
+				realtimeVoice = message.realtimeVoice.trim();
+				vox.voice = realtimeVoice;
+			}
+			if (typeof message.realtimeVoiceStyle === "string") {
+				realtimeVoiceStyle = message.realtimeVoiceStyle;
+				vox.voiceStyle = realtimeVoiceStyle;
 			}
 			return;
 		}

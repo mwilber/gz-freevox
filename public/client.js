@@ -19,6 +19,9 @@ const settingsModal = document.getElementById("settingsModal");
 const settingsClose = document.getElementById("settingsClose");
 const settingsBackdrop = document.getElementById("settingsBackdrop");
 const openaiApiKeyInput = document.getElementById("openaiApiKeyInput");
+const realtimeModelInput = document.getElementById("realtimeModelInput");
+const realtimeVoiceInput = document.getElementById("realtimeVoiceInput");
+const realtimeVoiceStyleInput = document.getElementById("realtimeVoiceStyleInput");
 const rtmUserTokenInput = document.getElementById("rtmUserTokenInput");
 const settingsSave = document.getElementById("settingsSave");
 
@@ -31,6 +34,20 @@ let currentConversationId = null;
 let openConversationMenu = null;
 const isProduction = !["localhost", "127.0.0.1"].includes(window.location.hostname);
 const conversationDumpRequests = new Map();
+
+const DEFAULT_SETTINGS = {
+	OPENAI_REALTIME_MODEL: "gpt-realtime",
+	OPENAI_REALTIME_VOICE: "sage",
+	OPENAI_REALTIME_VOICE_STYLE: "Speak fast with a low pitch."
+};
+
+function initializeSettingsDefaults() {
+	Object.entries(DEFAULT_SETTINGS).forEach(([key, value]) => {
+		if (!localStorage.getItem(key)) {
+			localStorage.setItem(key, value);
+		}
+	});
+}
 
 function requestConversationDump() {
 	if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -49,12 +66,12 @@ function connect() {
 	const protocol = window.location.protocol === "https:" ? "wss" : "ws";
 	socket = new WebSocket(`${protocol}://${window.location.host}`);
 
-socket.addEventListener("open", () => {
-	statusEl.textContent = "Connected";
-	statusEl.style.color = "#3c6e3c";
-	sendSettingsUpdate();
-	refreshConversations();
-});
+	socket.addEventListener("open", () => {
+		statusEl.textContent = "Connected";
+		statusEl.style.color = "#3c6e3c";
+		sendSettingsUpdate();
+		refreshConversations();
+	});
 
 	socket.addEventListener("close", () => {
 		statusEl.textContent = "Disconnected";
@@ -253,6 +270,15 @@ function loadSettingsFields() {
 	if (openaiApiKeyInput) {
 		openaiApiKeyInput.value = localStorage.getItem("OPENAI_API_KEY") || "";
 	}
+	if (realtimeModelInput) {
+		realtimeModelInput.value = localStorage.getItem("OPENAI_REALTIME_MODEL") || "";
+	}
+	if (realtimeVoiceInput) {
+		realtimeVoiceInput.value = localStorage.getItem("OPENAI_REALTIME_VOICE") || "";
+	}
+	if (realtimeVoiceStyleInput) {
+		realtimeVoiceStyleInput.value = localStorage.getItem("OPENAI_REALTIME_VOICE_STYLE") || "";
+	}
 	if (rtmUserTokenInput) {
 		rtmUserTokenInput.value = localStorage.getItem("RTM_USER_TOKEN") || "";
 	}
@@ -261,6 +287,15 @@ function loadSettingsFields() {
 function saveSettingsFields() {
 	if (openaiApiKeyInput) {
 		localStorage.setItem("OPENAI_API_KEY", openaiApiKeyInput.value || "");
+	}
+	if (realtimeModelInput) {
+		localStorage.setItem("OPENAI_REALTIME_MODEL", realtimeModelInput.value || "");
+	}
+	if (realtimeVoiceInput) {
+		localStorage.setItem("OPENAI_REALTIME_VOICE", realtimeVoiceInput.value || "");
+	}
+	if (realtimeVoiceStyleInput) {
+		localStorage.setItem("OPENAI_REALTIME_VOICE_STYLE", realtimeVoiceStyleInput.value || "");
 	}
 	if (rtmUserTokenInput) {
 		localStorage.setItem("RTM_USER_TOKEN", rtmUserTokenInput.value || "");
@@ -272,12 +307,12 @@ function sendSettingsUpdate() {
 		return;
 	}
 	const openaiApiKey = localStorage.getItem("OPENAI_API_KEY") || "";
-	if (!openaiApiKey) {
-		return;
-	}
 	socket.send(JSON.stringify({
 		type: "settings_update",
-		openaiApiKey
+		openaiApiKey,
+		realtimeModel: localStorage.getItem("OPENAI_REALTIME_MODEL") || "",
+		realtimeVoice: localStorage.getItem("OPENAI_REALTIME_VOICE") || "",
+		realtimeVoiceStyle: localStorage.getItem("OPENAI_REALTIME_VOICE_STYLE") || ""
 	}));
 }
 
@@ -445,6 +480,7 @@ async function handleDeleteConversation(conversationId) {
 	}
 }
 
+initializeSettingsDefaults();
 connect();
 
 window.dumpConversationMessages = () => {
