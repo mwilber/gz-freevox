@@ -7,7 +7,6 @@ const form = document.getElementById("composer");
 const input = document.getElementById("message");
 const statusEl = document.getElementById("status");
 const voiceToggle = document.getElementById("voiceToggle");
-const voiceStatus = document.getElementById("voiceStatus");
 const menuToggle = document.getElementById("menuToggle");
 const conversationPanel = document.getElementById("conversationPanel");
 const conversationList = document.getElementById("conversationList");
@@ -426,7 +425,6 @@ voxController = new VoxController({
 	appendToolResult,
 	chatEl: chat,
 	voiceToggle,
-	voiceStatus,
 	onVoiceActiveChange: setVoiceActive,
 	canStartVoice: () => !isTextStreaming
 });

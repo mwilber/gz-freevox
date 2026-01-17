@@ -32,11 +32,6 @@
 
 			<section class="chat" id="chat"></section>
 
-			<div class="voice">
-				<button type="button" class="voice__toggle" id="voiceToggle">Start voice</button>
-				<p class="voice__status" id="voiceStatus">Voice idle.</p>
-			</div>
-
 			<form class="composer" id="composer">
 				<label class="sr-only" for="message">Your message</label>
 				<input
@@ -47,7 +42,21 @@
 					autocomplete="off"
 					required
 				/>
-				<button type="submit">Send</button>
+				<button type="submit" class="composer__send" aria-label="Send message">
+					<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+						<path d="M3 12L21 3L13.5 21L11 13L3 12Z" />
+					</svg>
+				</button>
+				<button type="button" class="voice__toggle" id="voiceToggle" aria-label="Start voice">
+					<span class="voice__label sr-only">Start voice</span>
+					<svg class="icon icon--mic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+						<path d="M12 3C10.35 3 9 4.35 9 6V12C9 13.65 10.35 15 12 15C13.65 15 15 13.65 15 12V6C15 4.35 13.65 3 12 3Z" />
+						<path d="M6 11V12C6 15.31 8.69 18 12 18C15.31 18 18 15.31 18 12V11H20V12C20 16.08 16.95 19.44 13 19.93V22H11V19.93C7.05 19.44 4 16.08 4 12V11H6Z" />
+					</svg>
+					<svg class="icon icon--stop" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+						<rect x="7" y="7" width="10" height="10" rx="2" />
+					</svg>
+				</button>
 			</form>
 		</main>
 		<aside class="panel" id="conversationPanel" aria-hidden="true">

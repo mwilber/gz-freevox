@@ -9,7 +9,6 @@ class VoxController {
 	 * @param {Function} [options.appendToolResult]
 	 * @param {HTMLElement} options.chatEl
 	 * @param {HTMLElement} options.voiceToggle
-	 * @param {HTMLElement} options.voiceStatus
 	 * @param {Function} options.onVoiceActiveChange
 	 * @param {Function} options.canStartVoice
 	 */
@@ -19,7 +18,6 @@ class VoxController {
 		appendToolResult,
 		chatEl,
 		voiceToggle,
-		voiceStatus,
 		onVoiceActiveChange,
 		canStartVoice
 	}) {
@@ -28,7 +26,6 @@ class VoxController {
 		this.appendToolResult = appendToolResult;
 		this.chatEl = chatEl;
 		this.voiceToggle = voiceToggle;
-		this.voiceStatus = voiceStatus;
 		this.onVoiceActiveChange = onVoiceActiveChange;
 		this.canStartVoice = canStartVoice;
 
@@ -418,12 +415,16 @@ class VoxController {
 	 * @param {boolean} active
 	 */
 	_updateVoiceUi(active) {
-		if (!this.voiceToggle || !this.voiceStatus) {
+		if (!this.voiceToggle) {
 			return;
 		}
-		this.voiceToggle.textContent = active ? "End voice" : "Start voice";
+		const nextLabel = active ? "End voice" : "Start voice";
+		const labelEl = this.voiceToggle.querySelector(".voice__label");
+		if (labelEl) {
+			labelEl.textContent = nextLabel;
+		}
+		this.voiceToggle.setAttribute("aria-label", nextLabel);
 		this.voiceToggle.classList.toggle("is-active", active);
-		this.voiceStatus.textContent = active ? "Listening and speaking in real time." : "Voice idle.";
 	}
 
 	/**
