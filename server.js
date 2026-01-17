@@ -303,6 +303,9 @@ wss.on("connection", (ws) => {
 				realtimeVoiceStyle = message.realtimeVoiceStyle;
 				vox.voiceStyle = realtimeVoiceStyle;
 			}
+			if (typeof message.freevoxUserId === "string" && message.freevoxUserId.trim()) {
+				process.env.FREEVOX_USER_ID = message.freevoxUserId.trim();
+			}
 			return;
 		}
 

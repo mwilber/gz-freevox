@@ -23,6 +23,7 @@ const realtimeModelInput = document.getElementById("realtimeModelInput");
 const realtimeVoiceInput = document.getElementById("realtimeVoiceInput");
 const realtimeVoiceStyleInput = document.getElementById("realtimeVoiceStyleInput");
 const rtmUserTokenInput = document.getElementById("rtmUserTokenInput");
+const freevoxUserIdInput = document.getElementById("freevoxUserIdInput");
 const settingsSave = document.getElementById("settingsSave");
 
 let socket;
@@ -282,6 +283,9 @@ function loadSettingsFields() {
 	if (rtmUserTokenInput) {
 		rtmUserTokenInput.value = localStorage.getItem("RTM_USER_TOKEN") || "";
 	}
+	if (freevoxUserIdInput) {
+		freevoxUserIdInput.value = localStorage.getItem("FREEVOX_USER_ID") || "";
+	}
 }
 
 function saveSettingsFields() {
@@ -300,6 +304,9 @@ function saveSettingsFields() {
 	if (rtmUserTokenInput) {
 		localStorage.setItem("RTM_USER_TOKEN", rtmUserTokenInput.value || "");
 	}
+	if (freevoxUserIdInput) {
+		localStorage.setItem("FREEVOX_USER_ID", freevoxUserIdInput.value || "");
+	}
 }
 
 function sendSettingsUpdate() {
@@ -312,7 +319,8 @@ function sendSettingsUpdate() {
 		openaiApiKey,
 		realtimeModel: localStorage.getItem("OPENAI_REALTIME_MODEL") || "",
 		realtimeVoice: localStorage.getItem("OPENAI_REALTIME_VOICE") || "",
-		realtimeVoiceStyle: localStorage.getItem("OPENAI_REALTIME_VOICE_STYLE") || ""
+		realtimeVoiceStyle: localStorage.getItem("OPENAI_REALTIME_VOICE_STYLE") || "",
+		freevoxUserId: localStorage.getItem("FREEVOX_USER_ID") || ""
 	}));
 }
 
