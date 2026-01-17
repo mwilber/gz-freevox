@@ -29,6 +29,21 @@ try {
 	}
 } catch (err) {}
 
+function getCurrentDateTimeString() {
+	return new Date().toLocaleString("en-US", {
+		dateStyle: "full",
+		timeStyle: "long"
+	});
+}
+
+function buildSystemPromptWithDate() {
+	return `${SYSTEM_PROMPT}\n\nThe current date and time is ${getCurrentDateTimeString()}.`;
+}
+
+function buildDateTimeSystemMessage() {
+	return `The current date and time is ${getCurrentDateTimeString()}.`;
+}
+
 if (!OPENAI_API_KEY) {
 	console.error("Missing OPENAI_API_KEY in environment.");
 	process.exit(1);
@@ -132,11 +147,12 @@ wss.on("connection", (ws) => {
 	let firstUserMessage = "";
 	let firstAssistantMessage = "";
 	let titleRequested = false;
+	let systemPromptWithDate = buildSystemPromptWithDate();
 
 	const history = [
 		{
 			role: "system",
-			content: SYSTEM_PROMPT
+			content: systemPromptWithDate
 		}
 	];
 
@@ -148,7 +164,7 @@ wss.on("connection", (ws) => {
 			try {
 				const conversation = db.createConversation({ title: "Untitled Conversation" });
 				conversationId = conversation.id;
-				db.addMessage({ conversationId, role: "system", content: SYSTEM_PROMPT });
+				db.addMessage({ conversationId, role: "system", content: systemPromptWithDate });
 				ws.send(JSON.stringify({
 					type: "conversation_started",
 					conversation
@@ -216,7 +232,7 @@ wss.on("connection", (ws) => {
 		apiKey: OPENAI_API_KEY,
 		model: REALTIME_MODEL,
 		voice: REALTIME_VOICE,
-		systemPrompt: SYSTEM_PROMPT,
+		systemPrompt: systemPromptWithDate,
 		transcriptionLanguage: REALTIME_TRANSCRIPTION_LANGUAGE,
 		onMessage: persistMessage,
 		voiceStyle: REALTIME_VOICE_STYLE
@@ -241,6 +257,16 @@ wss.on("connection", (ws) => {
 			return;
 		}
 
+		if (message.type === "conversation_dump") {
+			const messages = chat.getInputMessages();
+			ws.send(JSON.stringify({
+				type: "conversation_dump",
+				requestId: message.requestId || null,
+				messages
+			}));
+			return;
+		}
+
 		if (message.type === "conversation_select") {
 			if (!message.conversationId) {
 				ws.send(JSON.stringify({ type: "error", message: "Invalid conversation selection." }));
@@ -260,6 +286,11 @@ wss.on("connection", (ws) => {
 				if (!nextHistory.some((item) => item.role === "system")) {
 					nextHistory.unshift({ role: "system", content: SYSTEM_PROMPT });
 				}
+				const dateTimeMessage = buildDateTimeSystemMessage();
+				nextHistory.push({ role: "system", content: dateTimeMessage });
+				const baseSystemPrompt =
+					nextHistory.find((item) => item.role === "system")?.content || SYSTEM_PROMPT;
+				vox.systemPrompt = `${baseSystemPrompt}\n\n${dateTimeMessage}`;
 				history.length = 0;
 				history.push(...nextHistory);
 				conversationId = message.conversationId;
@@ -286,8 +317,10 @@ wss.on("connection", (ws) => {
 		}
 
 		if (message.type === "conversation_new") {
+			systemPromptWithDate = buildSystemPromptWithDate();
+			vox.systemPrompt = systemPromptWithDate;
 			history.length = 0;
-			history.push({ role: "system", content: SYSTEM_PROMPT });
+			history.push({ role: "system", content: systemPromptWithDate });
 			conversationId = null;
 			firstUserMessage = "";
 			firstAssistantMessage = "";

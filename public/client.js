@@ -23,6 +23,20 @@ let chatController;
 let voxController;
 let currentConversationId = null;
 let openConversationMenu = null;
+const conversationDumpRequests = new Map();
+
+function requestConversationDump() {
+	if (!socket || socket.readyState !== WebSocket.OPEN) {
+		return Promise.reject(new Error("WebSocket is not connected."));
+	}
+	const requestId = typeof crypto !== "undefined" && crypto.randomUUID
+		? crypto.randomUUID()
+		: `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+	return new Promise((resolve) => {
+		conversationDumpRequests.set(requestId, resolve);
+		socket.send(JSON.stringify({ type: "conversation_dump", requestId }));
+	});
+}
 
 function connect() {
 	const protocol = window.location.protocol === "https:" ? "wss" : "ws";
@@ -73,6 +87,18 @@ function connect() {
 				setCurrentConversationTitle(payload.conversation.title);
 			}
 			refreshConversations();
+			return;
+		}
+
+		if (payload.type === "conversation_dump") {
+			const requestId = payload.requestId || null;
+			const resolver = requestId ? conversationDumpRequests.get(requestId) : null;
+			if (resolver) {
+				conversationDumpRequests.delete(requestId);
+				resolver(payload.messages || []);
+				return;
+			}
+			console.log(payload.messages || []);
 			return;
 		}
 
@@ -370,6 +396,18 @@ async function handleDeleteConversation(conversationId) {
 }
 
 connect();
+
+window.dumpConversationMessages = () => {
+	return requestConversationDump()
+		.then((messages) => {
+			console.log(messages);
+			return messages;
+		})
+		.catch((error) => {
+			console.warn(error?.message || "Failed to dump conversation messages.");
+			return null;
+		});
+};
 
 chatController = new ChatController({
 	socket,

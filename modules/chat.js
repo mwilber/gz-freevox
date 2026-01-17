@@ -21,12 +21,10 @@ class ChatHandler {
 	}
 
 	/**
-	 * Streams a Responses API call and collects tool calls.
-	 * @param {object} [options]
-	 * @param {Array} [options.tools]
-	 * @returns {Promise<{assistantText: string, toolCalls: Array}>}
+	 * Returns the input array exactly as sent to the Responses API.
+	 * @returns {Array}
 	 */
-	async _streamAssistantResponse({ tools } = {}) {
+	getInputMessages() {
 		const input = this.history.map((message) => {
 			if (!message || typeof message !== "object") {
 				return message;
@@ -37,14 +35,23 @@ class ChatHandler {
 			const { tool_calls, ...rest } = message;
 			return rest;
 		});
-		const pendingToolCalls = this.pendingToolCalls;
-		const pendingToolResults = this.pendingToolResults;
-		if (pendingToolCalls.length > 0) {
-			input.push(...pendingToolCalls);
+		if (this.pendingToolCalls.length > 0) {
+			input.push(...this.pendingToolCalls);
 		}
-		if (pendingToolResults.length > 0) {
-			input.push(...pendingToolResults);
+		if (this.pendingToolResults.length > 0) {
+			input.push(...this.pendingToolResults);
 		}
+		return input;
+	}
+
+	/**
+	 * Streams a Responses API call and collects tool calls.
+	 * @param {object} [options]
+	 * @param {Array} [options.tools]
+	 * @returns {Promise<{assistantText: string, toolCalls: Array}>}
+	 */
+	async _streamAssistantResponse({ tools } = {}) {
+		const input = this.getInputMessages();
 		const requestBody = {
 			model: this.model,
 			input,
