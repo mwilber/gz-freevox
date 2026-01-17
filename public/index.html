@@ -66,10 +66,28 @@
 			</div>
 			<div class="panel__actions">
 				<button type="button" class="panel__new" id="newConversation">New Conversation</button>
+				<button type="button" class="panel__settings" id="settingsButton">
+					<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+						<path d="M19.14 12.94C19.19 12.64 19.22 12.32 19.22 12C19.22 11.68 19.19 11.36 19.14 11.06L21 9.63L19.27 6.67L17.14 7.36C16.64 6.98 16.07 6.66 15.45 6.43L15 4H9L8.55 6.43C7.93 6.66 7.36 6.98 6.86 7.36L4.73 6.67L3 9.63L4.86 11.06C4.81 11.36 4.78 11.68 4.78 12C4.78 12.32 4.81 12.64 4.86 12.94L3 14.37L4.73 17.33L6.86 16.64C7.36 17.02 7.93 17.34 8.55 17.57L9 20H15L15.45 17.57C16.07 17.34 16.64 17.02 17.14 16.64L19.27 17.33L21 14.37L19.14 12.94ZM12 15.2C10.23 15.2 8.8 13.77 8.8 12C8.8 10.23 10.23 8.8 12 8.8C13.77 8.8 15.2 10.23 15.2 12C15.2 13.77 13.77 15.2 12 15.2Z" />
+					</svg>
+					<span>Settings</span>
+				</button>
 			</div>
 			<div class="panel__list" id="conversationList" role="list"></div>
 		</aside>
 		<div class="panel-backdrop" id="panelBackdrop" hidden></div>
+		<div class="settings-modal" id="settingsModal" hidden>
+			<div class="settings-modal__content" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+				<header class="settings-modal__header">
+					<h2 id="settingsTitle">Settings</h2>
+					<button type="button" class="settings-modal__close" id="settingsClose">Close</button>
+				</header>
+				<div class="settings-modal__body">
+					<p>Settings go here.</p>
+				</div>
+			</div>
+			<div class="settings-modal__backdrop" id="settingsBackdrop"></div>
+		</div>
 
 		<script type="module" src="client.js"></script>
 	</body>

@@ -14,6 +14,10 @@ const panelClose = document.getElementById("panelClose");
 const panelBackdrop = document.getElementById("panelBackdrop");
 const currentConversationTitle = document.getElementById("currentConversationTitle");
 const newConversationButton = document.getElementById("newConversation");
+const settingsButton = document.getElementById("settingsButton");
+const settingsModal = document.getElementById("settingsModal");
+const settingsClose = document.getElementById("settingsClose");
+const settingsBackdrop = document.getElementById("settingsBackdrop");
 
 let socket;
 let isTextStreaming = false;
@@ -228,6 +232,16 @@ function togglePanel(nextOpen) {
 	conversationPanel.setAttribute("aria-hidden", String(!isOpen));
 	panelBackdrop.hidden = !isOpen;
 	menuToggle.setAttribute("aria-expanded", String(isOpen));
+}
+
+function toggleSettings(nextOpen) {
+	if (!settingsModal) {
+		return;
+	}
+	const isOpen = typeof nextOpen === "boolean"
+		? nextOpen
+		: settingsModal.hasAttribute("hidden");
+	settingsModal.toggleAttribute("hidden", !isOpen);
 }
 
 async function refreshConversations() {
@@ -455,5 +469,23 @@ if (newConversationButton) {
 		}
 		refreshConversations();
 		togglePanel(false);
+	});
+}
+
+if (settingsButton) {
+	settingsButton.addEventListener("click", () => {
+		toggleSettings(true);
+	});
+}
+
+if (settingsClose) {
+	settingsClose.addEventListener("click", () => {
+		toggleSettings(false);
+	});
+}
+
+if (settingsBackdrop) {
+	settingsBackdrop.addEventListener("click", () => {
+		toggleSettings(false);
 	});
 }

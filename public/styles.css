@@ -128,6 +128,8 @@ body {
 
 .panel__actions {
 	padding: 12px 20px 0;
+	display: grid;
+	gap: 10px;
 }
 
 .panel__new {
@@ -137,6 +139,20 @@ body {
 	border-radius: 12px;
 	padding: 10px 14px;
 	font-size: 0.95rem;
+}
+
+.panel__settings {
+	width: 100%;
+	background: transparent;
+	color: var(--ink);
+	border: 1px solid rgba(28, 26, 22, 0.18);
+	border-radius: 12px;
+	padding: 10px 14px;
+	font-size: 0.95rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
 }
 
 .panel__header h2 {
@@ -259,6 +275,63 @@ body {
 	inset: 0;
 	background: rgba(28, 26, 22, 0.35);
 	z-index: 2;
+}
+
+.settings-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 4;
+	display: grid;
+	place-items: center;
+}
+
+.settings-modal[hidden] {
+	display: none;
+}
+
+.settings-modal__backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(28, 26, 22, 0.45);
+}
+
+.settings-modal__content {
+	position: relative;
+	z-index: 1;
+	width: min(520px, 92vw);
+	background: var(--panel);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow);
+	padding: 20px 22px;
+	display: grid;
+	gap: 16px;
+}
+
+.settings-modal__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.settings-modal__header h2 {
+	margin: 0;
+	font-size: 1.2rem;
+	font-family: "Fraunces", "Times New Roman", serif;
+}
+
+.settings-modal__close {
+	background: transparent;
+	color: var(--muted);
+	border: 1px solid rgba(28, 26, 22, 0.15);
+	padding: 8px 12px;
+	border-radius: 12px;
+	font-size: 0.85rem;
+}
+
+.settings-modal__body p {
+	margin: 0;
+	color: var(--muted);
 }
 
 .eyebrow {
