@@ -177,6 +177,9 @@ class VoxController {
 		this.playbackContext = null;
 		this.voiceAssistantEl = null;
 		this.voiceUserEl = null;
+		if (this.voiceToggle) {
+			this.voiceToggle.classList.remove("is-listening");
+		}
 		this._updateVoiceUi(false);
 		this.onVoiceActiveChange(false);
 	}
@@ -254,6 +257,7 @@ class VoxController {
 			if (this.isAssistantSpeaking || this.playbackNodes.length > 0) {
 				this._stopPlayback();
 			}
+			this.voiceToggle.classList.add("is-listening");
 			if (!this.voiceUserEl) {
 				this.voiceUserEl = this.appendMessage("You", "…", "user");
 			} else {
@@ -278,6 +282,7 @@ class VoxController {
 
 		if (payload.type === "user_voice_text_done") {
 			this.suppressAssistantAudio = false;
+			this.voiceToggle.classList.remove("is-listening");
 			if (this.voiceUserEl) {
 				this.voiceUserEl.updateBody(
 					this.voiceUserEl.getRawText(),

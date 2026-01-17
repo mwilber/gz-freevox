@@ -480,6 +480,10 @@ h1 {
 	background: #1f6f5f;
 }
 
+.voice__toggle.is-listening {
+	background: #c45b1e;
+}
+
 input {
 	border: 1px solid transparent;
 	background: #fff;
