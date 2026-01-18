@@ -36,6 +36,9 @@ class VoxHandler {
 		this.pendingAssistantTranscript = "";
 		this.lastUserTranscript = "";
 		this.bufferHasAudio = false;
+		this.seededItemIds = new Set();
+		this.pendingSeedMessages = 0;
+		this.seedCounter = 0;
 	}
 
 	/**
@@ -57,10 +60,16 @@ class VoxHandler {
 			if (!message.content || message.role === "system") {
 				continue;
 			}
+			const seedId = `seed-${Date.now()}-${this.seedCounter++}`;
+			if (message.role === "user") {
+				this.seededItemIds.add(seedId);
+				this.pendingSeedMessages += 1;
+			}
 			const textType = message.role === "user" ? "input_text" : "output_text";
 			this._sendRealtime({
 				type: "conversation.item.create",
 				item: {
+					id: seedId,
 					type: "message",
 					role: message.role,
 					content: [{ type: textType, text: message.content }]
@@ -339,6 +348,18 @@ class VoxHandler {
 			if (payload.type === "conversation.item.created" || payload.type === "conversation.item.updated") {
 				const item = payload.item;
 				if (item && item.role === "user" && Array.isArray(item.content)) {
+					const hasAudio = item.content.some((part) => part.type === "input_audio");
+					const hasText = item.content.some((part) => part.type === "input_text");
+					const isSeeded = item.id && this.seededItemIds.has(item.id);
+					if (isSeeded || (this.pendingSeedMessages > 0 && hasText && !hasAudio)) {
+						if (item.id && this.seededItemIds.has(item.id)) {
+							this.seededItemIds.delete(item.id);
+						}
+						if (this.pendingSeedMessages > 0) {
+							this.pendingSeedMessages -= 1;
+						}
+						return;
+					}
 					const textPart = item.content.find((part) => part.type === "input_text");
 					const audioPart = item.content.find((part) => part.type === "input_audio");
 					const transcript = (textPart && textPart.text) || (audioPart && audioPart.transcript) || "";
@@ -397,6 +418,9 @@ class VoxHandler {
 			this.pendingUserTranscriptSent = false;
 			this.pendingAssistantTranscript = "";
 			this.bufferHasAudio = false;
+			this.seededItemIds.clear();
+			this.pendingSeedMessages = 0;
+			this.seedCounter = 0;
 			this.realtimeToolCalls.clear();
 		});
 
@@ -425,6 +449,9 @@ class VoxHandler {
 		this.pendingUserTranscriptSent = false;
 		this.pendingAssistantTranscript = "";
 		this.bufferHasAudio = false;
+		this.seededItemIds.clear();
+		this.pendingSeedMessages = 0;
+		this.seedCounter = 0;
 		this.realtimeToolCalls.clear();
 	}
 
