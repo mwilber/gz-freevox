@@ -39,11 +39,13 @@ body {
 	z-index: 1;
 	max-width: 860px;
 	margin: 0 auto;
-	padding: 24px 16px 20px;
+	padding: 6px;
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
 	gap: 16px;
+	max-height: calc(100vh - 12px);
+    overflow: hidden;
 }
 
 .app__header {
@@ -384,7 +386,6 @@ h1 {
 	border-radius: 999px;
 	font-size: 0.85rem;
 	color: var(--muted);
-	box-shadow: 0 10px 20px rgba(28, 26, 22, 0.08);
 }
 
 .chat {
@@ -395,7 +396,6 @@ h1 {
 	padding: 18px;
 	border-radius: var(--radius);
 	background: var(--panel);
-	box-shadow: var(--shadow);
 	overflow-y: auto;
 	min-height: 40vh;
 }
@@ -561,11 +561,10 @@ h1 {
 .composer {
 	display: grid;
 	grid-template-columns: 1fr auto auto;
-	gap: 12px;
+	gap: 6px;
 	padding: 14px;
 	border-radius: var(--radius);
 	background: var(--panel);
-	box-shadow: var(--shadow);
 }
 
 .voice__toggle {
@@ -667,10 +666,6 @@ button:disabled {
 }
 
 @media (min-width: 720px) {
-	.app {
-		padding: 48px 24px 32px;
-		gap: 24px;
-	}
 
 	.app__header {
 		flex-direction: row;
@@ -679,7 +674,6 @@ button:disabled {
 	}
 
 	.chat {
-		max-height: 60vh;
 		padding: 26px;
 		gap: 18px;
 	}
