@@ -65,7 +65,7 @@ class VoxHandler {
 				this.seededItemIds.add(seedId);
 				this.pendingSeedMessages += 1;
 			}
-			const textType = message.role === "user" ? "input_text" : "output_text";
+			const textType = message.role === "assistant" ? "text" : "input_text";
 			this._sendRealtime({
 				type: "conversation.item.create",
 				item: {
