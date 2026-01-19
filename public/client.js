@@ -42,6 +42,17 @@ const DEFAULT_SETTINGS = {
 	OPENAI_REALTIME_VOICE_STYLE: "Speak fast with a low pitch."
 };
 
+function registerServiceWorker() {
+	if (!("serviceWorker" in navigator)) {
+		return;
+	}
+	window.addEventListener("load", () => {
+		navigator.serviceWorker.register("/service-worker.js").catch((err) => {
+			console.warn("Service worker registration failed:", err);
+		});
+	});
+}
+
 function initializeSettingsDefaults() {
 	Object.entries(DEFAULT_SETTINGS).forEach(([key, value]) => {
 		if (!localStorage.getItem(key)) {
@@ -488,6 +499,7 @@ async function handleDeleteConversation(conversationId) {
 	}
 }
 
+registerServiceWorker();
 initializeSettingsDefaults();
 connect();
 
