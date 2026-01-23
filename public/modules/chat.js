@@ -12,6 +12,7 @@ class ChatController {
 	 * @param {HTMLInputElement} options.inputEl
 	 * @param {Function} options.onStreamingChange
 	 * @param {Function} options.canSendMessage
+	 * @param {Function} [options.ensureConnected]
 	 */
 	constructor({
 		socket,
@@ -21,7 +22,8 @@ class ChatController {
 		formEl,
 		inputEl,
 		onStreamingChange,
-		canSendMessage
+		canSendMessage,
+		ensureConnected
 	}) {
 		this.socket = socket;
 		this.appendMessage = appendMessage;
@@ -31,6 +33,7 @@ class ChatController {
 		this.inputEl = inputEl;
 		this.onStreamingChange = onStreamingChange;
 		this.canSendMessage = canSendMessage;
+		this.ensureConnected = ensureConnected;
 		this.currentAssistantEl = null;
 		this.isStreaming = false;
 		this.mcpClient = null;
@@ -63,25 +66,44 @@ class ChatController {
 		if (
 			!text ||
 			this.isStreaming ||
-			this.socket.readyState !== WebSocket.OPEN ||
 			(this.canSendMessage && !this.canSendMessage())
 		) {
 			return;
 		}
 
 		this.appendMessage("You", text, "user");
+		this._setStreaming(true);
 		const sendMessage = () => {
+			if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+				throw new Error("WebSocket is not connected.");
+			}
 			this.socket.send(JSON.stringify({
 				type: "user_message",
 				text,
 				tools: this.mcpTools
 			}));
 		};
+		const sendWithTools = () => {
+			const connectPromise = this.ensureConnected ? this.ensureConnected() : Promise.resolve();
+			return connectPromise.then(sendMessage);
+		};
 		Promise.resolve(this.mcpReadyPromise)
-			.then(sendMessage)
-			.catch(sendMessage);
+			.then(sendWithTools)
+			.catch(sendWithTools)
+			.catch((error) => {
+				this._setStreaming(false);
+				if (this.appendToolResult) {
+					this.appendToolResult("System error", {
+						message: error?.message || "Failed to send message."
+					}, {
+						variant: "error",
+						label: "System error"
+					});
+				} else if (this.appendMessage) {
+					this.appendMessage("System", "Failed to send message.", "assistant");
+				}
+			});
 		this.inputEl.value = "";
-		this._setStreaming(true);
 	}
 
 	/**
@@ -187,7 +209,17 @@ class ChatController {
 	 * @returns {Promise<void>}
 	 */
 	async executeToolQueue() {
-		if (this.toolQueue.length === 0 || this.socket.readyState !== WebSocket.OPEN) {
+		if (this.toolQueue.length === 0) {
+			return;
+		}
+		if (this.ensureConnected) {
+			try {
+				await this.ensureConnected();
+			} catch (err) {
+				return;
+			}
+		}
+		if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
 			return;
 		}
 
@@ -244,6 +276,13 @@ class ChatController {
 		}
 
 		this.socket.send(JSON.stringify({ type: "tool_results", results }));
+	}
+
+	/**
+	 * @param {WebSocket} nextSocket
+	 */
+	setSocket(nextSocket) {
+		this.socket = nextSocket;
 	}
 
 	/**

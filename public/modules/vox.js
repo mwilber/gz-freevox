@@ -11,6 +11,7 @@ class VoxController {
 	 * @param {HTMLElement} options.voiceToggle
 	 * @param {Function} options.onVoiceActiveChange
 	 * @param {Function} options.canStartVoice
+	 * @param {Function} [options.ensureConnected]
 	 */
 	constructor({
 		socket,
@@ -19,7 +20,8 @@ class VoxController {
 		chatEl,
 		voiceToggle,
 		onVoiceActiveChange,
-		canStartVoice
+		canStartVoice,
+		ensureConnected
 	}) {
 		this.socket = socket;
 		this.appendMessage = appendMessage;
@@ -28,6 +30,7 @@ class VoxController {
 		this.voiceToggle = voiceToggle;
 		this.onVoiceActiveChange = onVoiceActiveChange;
 		this.canStartVoice = canStartVoice;
+		this.ensureConnected = ensureConnected;
 
 		this.isVoiceActive = false;
 		this.voiceStream = null;
@@ -63,7 +66,8 @@ class VoxController {
 			this.stopVoiceSession({ notifyServer: true });
 			return;
 		}
-		this.startVoiceSession();
+		const connectPromise = this.ensureConnected ? this.ensureConnected() : Promise.resolve();
+		connectPromise.then(() => this.startVoiceSession()).catch(() => {});
 	}
 
 	/**
@@ -367,7 +371,17 @@ class VoxController {
 	 * @returns {Promise<void>}
 	 */
 	async executeToolQueue() {
-		if (this.toolQueue.length === 0 || this.socket.readyState !== WebSocket.OPEN) {
+		if (this.toolQueue.length === 0) {
+			return;
+		}
+		if (this.ensureConnected) {
+			try {
+				await this.ensureConnected();
+			} catch (err) {
+				return;
+			}
+		}
+		if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
 			return;
 		}
 
@@ -431,6 +445,13 @@ class VoxController {
 	 */
 	handleSocketClose() {
 		this.stopVoiceSession({ notifyServer: false });
+	}
+
+	/**
+	 * @param {WebSocket} nextSocket
+	 */
+	setSocket(nextSocket) {
+		this.socket = nextSocket;
 	}
 
 	/**

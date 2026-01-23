@@ -27,6 +27,7 @@ const freevoxUserIdInput = document.getElementById("freevoxUserIdInput");
 const settingsSave = document.getElementById("settingsSave");
 
 let socket;
+let connectPromise = null;
 let isTextStreaming = false;
 let isVoiceActive = false;
 let chatController;
@@ -62,38 +63,80 @@ function initializeSettingsDefaults() {
 }
 
 function requestConversationDump() {
-	if (!socket || socket.readyState !== WebSocket.OPEN) {
-		return Promise.reject(new Error("WebSocket is not connected."));
-	}
 	const requestId = typeof crypto !== "undefined" && crypto.randomUUID
 		? crypto.randomUUID()
 		: `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-	return new Promise((resolve) => {
+	return ensureSocketConnected().then(() => new Promise((resolve) => {
+		if (!socket || socket.readyState !== WebSocket.OPEN) {
+			resolve([]);
+			return;
+		}
 		conversationDumpRequests.set(requestId, resolve);
 		socket.send(JSON.stringify({ type: "conversation_dump", requestId }));
-	});
+	}));
 }
 
 function connect() {
+	if (socket && socket.readyState === WebSocket.OPEN) {
+		return Promise.resolve();
+	}
+	if (socket && socket.readyState === WebSocket.CONNECTING && connectPromise) {
+		return connectPromise;
+	}
+	if (connectPromise) {
+		return connectPromise;
+	}
 	const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-	socket = new WebSocket(`${protocol}://${window.location.host}`);
+	const nextSocket = new WebSocket(`${protocol}://${window.location.host}`);
+	socket = nextSocket;
+	if (chatController) {
+		chatController.setSocket(nextSocket);
+	}
+	if (voxController) {
+		voxController.setSocket(nextSocket);
+	}
 
-	socket.addEventListener("open", () => {
-		statusEl.textContent = "Connected";
-		statusEl.style.color = "#3c6e3c";
-		sendSettingsUpdate();
-		refreshConversations();
+	connectPromise = new Promise((resolve, reject) => {
+		let opened = false;
+		nextSocket.addEventListener("open", () => {
+			opened = true;
+			statusEl.textContent = "Connected";
+			statusEl.style.color = "#3c6e3c";
+			sendSettingsUpdate();
+			refreshConversations();
+			if (currentConversationId) {
+				nextSocket.send(JSON.stringify({
+					type: "conversation_select",
+					conversationId: currentConversationId
+				}));
+			}
+			connectPromise = null;
+			resolve();
+		});
+
+		nextSocket.addEventListener("close", () => {
+			statusEl.textContent = "Disconnected";
+			statusEl.style.color = "#9b3e25";
+			if (voxController) {
+				voxController.handleSocketClose();
+			}
+			if (!opened) {
+				connectPromise = null;
+				reject(new Error("WebSocket closed before connecting."));
+				return;
+			}
+			connectPromise = null;
+		});
+
+		nextSocket.addEventListener("error", (err) => {
+			if (!opened) {
+				connectPromise = null;
+				reject(err);
+			}
+		});
 	});
 
-	socket.addEventListener("close", () => {
-		statusEl.textContent = "Disconnected";
-		statusEl.style.color = "#9b3e25";
-		if (voxController) {
-			voxController.handleSocketClose();
-		}
-	});
-
-	socket.addEventListener("message", (event) => {
+	nextSocket.addEventListener("message", (event) => {
 		const payload = JSON.parse(event.data);
 
 		if (payload.type === "error") {
@@ -147,6 +190,15 @@ function connect() {
 			voxController.handleSocketMessage(payload);
 		}
 	});
+
+	return connectPromise;
+}
+
+function ensureSocketConnected() {
+	if (socket && socket.readyState === WebSocket.OPEN) {
+		return Promise.resolve();
+	}
+	return connect();
 }
 
 function appendMessage(label, text, role) {
@@ -431,6 +483,7 @@ function renderConversations(conversations) {
 }
 
 async function loadConversation(conversationId) {
+	const ensurePromise = ensureSocketConnected();
 	try {
 		const response = await fetch(`/conversations/${conversationId}`);
 		if (!response.ok) {
@@ -451,7 +504,8 @@ async function loadConversation(conversationId) {
 		if (data.conversation?.title) {
 			setCurrentConversationTitle(data.conversation.title);
 		}
-		if (socket.readyState === WebSocket.OPEN) {
+		await ensurePromise;
+		if (socket && socket.readyState === WebSocket.OPEN) {
 			socket.send(JSON.stringify({ type: "conversation_select", conversationId }));
 		}
 		refreshConversations();
@@ -523,7 +577,8 @@ chatController = new ChatController({
 	formEl: form,
 	inputEl: input,
 	onStreamingChange: setTextStreaming,
-	canSendMessage: () => !isVoiceActive
+	canSendMessage: () => !isVoiceActive,
+	ensureConnected: ensureSocketConnected
 });
 
 voxController = new VoxController({
@@ -533,7 +588,8 @@ voxController = new VoxController({
 	chatEl: chat,
 	voiceToggle,
 	onVoiceActiveChange: setVoiceActive,
-	canStartVoice: () => !isTextStreaming
+	canStartVoice: () => !isTextStreaming,
+	ensureConnected: ensureSocketConnected
 });
 
 if (menuToggle) {
@@ -557,9 +613,13 @@ if (newConversationButton) {
 		currentConversationId = null;
 		chat.innerHTML = "";
 		setCurrentConversationTitle("New conversation");
-		if (socket.readyState === WebSocket.OPEN) {
-			socket.send(JSON.stringify({ type: "conversation_new" }));
-		}
+		ensureSocketConnected()
+			.then(() => {
+				if (socket && socket.readyState === WebSocket.OPEN) {
+					socket.send(JSON.stringify({ type: "conversation_new" }));
+				}
+			})
+			.catch(() => {});
 		refreshConversations();
 		togglePanel(false);
 	});
