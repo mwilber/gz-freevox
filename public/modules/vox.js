@@ -79,6 +79,15 @@ class VoxController {
 			return;
 		}
 
+		if (!this.voiceContext || this.voiceContext.state === "closed") {
+			this.voiceContext = new AudioContext({ sampleRate: 24000 });
+		}
+		if (!this.playbackContext || this.playbackContext.state === "closed") {
+			this.playbackContext = new AudioContext({ sampleRate: 24000 });
+		}
+		await this._resumeAudioContext(this.playbackContext);
+		await this._resumeAudioContext(this.voiceContext);
+
 		try {
 			this.voiceStream = await navigator.mediaDevices.getUserMedia({
 				audio: {
@@ -92,11 +101,6 @@ class VoxController {
 			this.appendMessage("System", "Microphone access was blocked.", "assistant");
 			return;
 		}
-
-		this.voiceContext = new AudioContext({ sampleRate: 24000 });
-		this.playbackContext = new AudioContext({ sampleRate: 24000 });
-		await this._resumeAudioContext(this.playbackContext);
-		await this._resumeAudioContext(this.voiceContext);
 
 		this.voiceSource = this.voiceContext.createMediaStreamSource(this.voiceStream);
 		this.voiceProcessor = this.voiceContext.createScriptProcessor(4096, 1, 1);
@@ -162,19 +166,13 @@ class VoxController {
 			this.voiceStream.getTracks().forEach((track) => track.stop());
 		}
 		this._stopPlayback();
-		if (this.voiceContext) {
-			this.voiceContext.close();
-		}
-		if (this.playbackContext) {
-			this.playbackContext.close();
-		}
+		this._suspendAudioContext(this.voiceContext);
+		this._suspendAudioContext(this.playbackContext);
 
 		this.voiceStream = null;
-		this.voiceContext = null;
 		this.voiceProcessor = null;
 		this.voiceSource = null;
 		this.voiceSilence = null;
-		this.playbackContext = null;
 		this.voiceAssistantEl = null;
 		this.voiceUserEl = null;
 		if (this.voiceToggle) {
@@ -555,6 +553,20 @@ class VoxController {
 			} catch (err) {
 				// Ignore resume errors.
 			}
+		}
+	}
+
+	/**
+	 * @param {AudioContext} context
+	 */
+	_suspendAudioContext(context) {
+		if (!context || context.state === "closed") {
+			return;
+		}
+		try {
+			context.suspend();
+		} catch (err) {
+			// Ignore suspend errors.
 		}
 	}
 }
