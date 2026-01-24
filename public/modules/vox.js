@@ -7,6 +7,7 @@ class VoxController {
 	 * @param {WebSocket} options.socket
 	 * @param {Function} options.appendMessage
 	 * @param {Function} [options.appendToolResult]
+	 * @param {Function} [options.appendToolCall]
 	 * @param {HTMLElement} options.chatEl
 	 * @param {HTMLElement} options.voiceToggle
 	 * @param {Function} options.onVoiceActiveChange
@@ -17,6 +18,7 @@ class VoxController {
 		socket,
 		appendMessage,
 		appendToolResult,
+		appendToolCall,
 		chatEl,
 		voiceToggle,
 		onVoiceActiveChange,
@@ -26,6 +28,7 @@ class VoxController {
 		this.socket = socket;
 		this.appendMessage = appendMessage;
 		this.appendToolResult = appendToolResult;
+		this.appendToolCall = appendToolCall;
 		this.chatEl = chatEl;
 		this.voiceToggle = voiceToggle;
 		this.onVoiceActiveChange = onVoiceActiveChange;
@@ -358,6 +361,9 @@ class VoxController {
 				} catch (error) {
 					console.error("Failed to parse tool arguments:", error);
 				}
+			}
+			if (this.appendToolCall) {
+				this.appendToolCall(toolCall.function?.name || "Unknown tool", args);
 			}
 			this.toolQueue.push({
 				toolCallId: toolCall.call_id || toolCall.id,

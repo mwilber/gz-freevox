@@ -7,6 +7,7 @@ class ChatController {
 	 * @param {WebSocket} options.socket
 	 * @param {Function} options.appendMessage
 	 * @param {Function} [options.appendToolResult]
+	 * @param {Function} [options.appendToolCall]
 	 * @param {HTMLElement} options.chatEl
 	 * @param {HTMLFormElement} options.formEl
 	 * @param {HTMLInputElement} options.inputEl
@@ -18,6 +19,7 @@ class ChatController {
 		socket,
 		appendMessage,
 		appendToolResult,
+		appendToolCall,
 		chatEl,
 		formEl,
 		inputEl,
@@ -28,6 +30,7 @@ class ChatController {
 		this.socket = socket;
 		this.appendMessage = appendMessage;
 		this.appendToolResult = appendToolResult;
+		this.appendToolCall = appendToolCall;
 		this.chatEl = chatEl;
 		this.formEl = formEl;
 		this.inputEl = inputEl;
@@ -196,6 +199,9 @@ class ChatController {
 				} catch (error) {
 					console.error("Failed to parse tool arguments:", error);
 				}
+			}
+			if (this.appendToolCall) {
+				this.appendToolCall(toolCall.function?.name || "Unknown tool", args);
 			}
 			this.toolQueue.push({
 				toolCallId: toolCall.call_id || toolCall.id,

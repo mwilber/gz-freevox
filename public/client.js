@@ -27,7 +27,7 @@ const freevoxUserIdInput = document.getElementById("freevoxUserIdInput");
 const settingsSave = document.getElementById("settingsSave");
 const appTitle = document.getElementById("appTitle");
 
-const APP_VERSION = "0.0.0.1";
+const APP_VERSION = "0.0.0.2";
 let socket;
 let connectPromise = null;
 let isTextStreaming = false;
@@ -267,6 +267,35 @@ function appendToolResult(toolName, content, options = {}) {
 	body.className = "tool-result__content";
 	body.hidden = true;
 	body.textContent = formatToolContent(content);
+
+	summary.addEventListener("click", () => {
+		const nextHidden = !body.hidden;
+		body.hidden = nextHidden;
+		summary.setAttribute("aria-expanded", String(!nextHidden));
+	});
+
+	wrapper.appendChild(summary);
+	wrapper.appendChild(body);
+	chat.appendChild(wrapper);
+	chat.scrollTop = chat.scrollHeight;
+
+	return wrapper;
+}
+
+function appendToolCall(toolName, args) {
+	const wrapper = document.createElement("div");
+	wrapper.className = "message message--tool";
+
+	const summary = document.createElement("button");
+	summary.type = "button";
+	summary.className = "tool-result__summary";
+	summary.setAttribute("aria-expanded", "false");
+	summary.textContent = `Tool call: ${toolName}`;
+
+	const body = document.createElement("pre");
+	body.className = "tool-result__content";
+	body.hidden = true;
+	body.textContent = formatToolContent(args);
 
 	summary.addEventListener("click", () => {
 		const nextHidden = !body.hidden;
@@ -588,6 +617,7 @@ chatController = new ChatController({
 	socket,
 	appendMessage,
 	appendToolResult,
+	appendToolCall,
 	chatEl: chat,
 	formEl: form,
 	inputEl: input,
@@ -600,6 +630,7 @@ voxController = new VoxController({
 	socket,
 	appendMessage,
 	appendToolResult,
+	appendToolCall,
 	chatEl: chat,
 	voiceToggle,
 	onVoiceActiveChange: setVoiceActive,
