@@ -73,6 +73,7 @@ Conversation switching:
 - If microphone capture fails, confirm browser permissions and prefer `http://localhost` or HTTPS.
 - Heroku deploys use `Procfile` with `web: node server.js`; set config vars for all `.env` values and consider `FREEVOX_DB_PATH` under `/tmp` since dyno filesystems are ephemeral.
 - Indentation uses tabs across project files.
+- IMPORTANT: The app version build number (last segment) must increment after every commit; update `APP_VERSION` in `public/client.js` and the visible title in `public/index.html`.
 
 ## Commit Messages
 All commit messages follow this format:

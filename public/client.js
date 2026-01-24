@@ -25,7 +25,9 @@ const realtimeVoiceStyleInput = document.getElementById("realtimeVoiceStyleInput
 const rtmUserTokenInput = document.getElementById("rtmUserTokenInput");
 const freevoxUserIdInput = document.getElementById("freevoxUserIdInput");
 const settingsSave = document.getElementById("settingsSave");
+const appTitle = document.getElementById("appTitle");
 
+const APP_VERSION = "0.0.0.1";
 let socket;
 let connectPromise = null;
 let isTextStreaming = false;
@@ -70,6 +72,10 @@ function initializeSettingsDefaults() {
 			localStorage.setItem(key, value);
 		}
 	});
+}
+
+if (appTitle) {
+	appTitle.textContent = `FREEVOX v${APP_VERSION}`;
 }
 
 function requestConversationDump() {
