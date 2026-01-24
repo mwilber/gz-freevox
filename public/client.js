@@ -54,6 +54,16 @@ function registerServiceWorker() {
 	});
 }
 
+function setStatus(nextStatus, color) {
+	if (!statusEl) {
+		return;
+	}
+	statusEl.textContent = nextStatus;
+	if (color) {
+		statusEl.style.color = color;
+	}
+}
+
 function initializeSettingsDefaults() {
 	Object.entries(DEFAULT_SETTINGS).forEach(([key, value]) => {
 		if (!localStorage.getItem(key)) {
@@ -87,6 +97,7 @@ function connect() {
 		return connectPromise;
 	}
 	const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+	setStatus("Connecting", "#8b6a3a");
 	const nextSocket = new WebSocket(`${protocol}://${window.location.host}`);
 	socket = nextSocket;
 	if (chatController) {
@@ -100,8 +111,7 @@ function connect() {
 		let opened = false;
 		nextSocket.addEventListener("open", () => {
 			opened = true;
-			statusEl.textContent = "Connected";
-			statusEl.style.color = "#3c6e3c";
+			setStatus("Connected", "#3c6e3c");
 			sendSettingsUpdate();
 			refreshConversations();
 			if (currentConversationId) {
@@ -115,8 +125,7 @@ function connect() {
 		});
 
 		nextSocket.addEventListener("close", () => {
-			statusEl.textContent = "Disconnected";
-			statusEl.style.color = "#9b3e25";
+			setStatus("Disconnected", "#9b3e25");
 			if (voxController) {
 				voxController.handleSocketClose();
 			}
