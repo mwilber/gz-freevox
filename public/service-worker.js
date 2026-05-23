@@ -1,11 +1,12 @@
-const CACHE_NAME = 'freevox-app-shell-v2';
+const CACHE_NAME = 'freevox-app-shell-v3';
 const APP_SHELL = [
   '/offline.html',
   '/styles.css',
   '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/maskable-512.png'
+  '/icons/android/android-launchericon-192-192.png',
+  '/icons/android/android-launchericon-512-512.png',
+  '/icons/ios/180.png',
+  '/icons/windows11/Square44x44Logo.targetsize-32.png'
 ];
 
 self.addEventListener('install', (event) => {
