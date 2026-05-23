@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PUBLIC_DIR = join(__dirname, 'public');
 const MAX_BODY_BYTES = 1024 * 1024;
-const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -25,7 +25,6 @@ export function createServer(options = {}) {
   const env = options.env ?? process.env;
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const now = options.now ?? (() => new Date());
-  const sessions = new Map();
 
   function requireConfig(names) {
     const missing = names.filter((name) => !env[name]);
@@ -40,11 +39,12 @@ export function createServer(options = {}) {
     return createHmac('sha256', env.FREEVOX_SESSION_SECRET).update(value).digest('base64url');
   }
 
-  function encodeCookieValue(value) {
+  function encodeCookiePayload(payload) {
+    const value = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
     return `${value}.${sign(value)}`;
   }
 
-  function decodeCookieValue(value) {
+  function decodeCookiePayload(value) {
     if (!value || !value.includes('.')) return null;
     const [raw, signature] = value.split('.');
     const expected = sign(raw);
@@ -52,7 +52,11 @@ export function createServer(options = {}) {
     const expectedBuffer = Buffer.from(expected);
     if (actualBuffer.length !== expectedBuffer.length) return null;
     if (!timingSafeEqual(actualBuffer, expectedBuffer)) return null;
-    return raw;
+    try {
+      return JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+    } catch {
+      return null;
+    }
   }
 
   function parseCookies(req) {
@@ -68,20 +72,16 @@ export function createServer(options = {}) {
 
   function getSession(req) {
     if (!env.FREEVOX_SESSION_SECRET) return null;
-    const sessionId = decodeCookieValue(parseCookies(req).freevox_session);
-    if (!sessionId) return null;
-    const session = sessions.get(sessionId);
-    if (!session) return null;
-    if (Date.now() - session.createdAt > SESSION_TTL_MS) {
-      sessions.delete(sessionId);
-      return null;
-    }
-    return { id: sessionId, ...session };
+    const session = decodeCookiePayload(parseCookies(req).freevox_session);
+    if (!session || session.username !== env.FREEVOX_UI_USERNAME) return null;
+    if (typeof session.expiresAt !== 'number' || session.expiresAt <= now().getTime()) return null;
+    if (typeof session.csrfToken !== 'string' || !session.csrfToken) return null;
+    return session;
   }
 
-  function cookieHeader(sessionId, req) {
+  function cookieHeader(session, req) {
     const secure = isSecureRequest(req) ? '; Secure' : '';
-    return `freevox_session=${encodeURIComponent(encodeCookieValue(sessionId))}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${SESSION_TTL_MS / 1000}${secure}`;
+    return `freevox_session=${encodeURIComponent(encodeCookiePayload(session))}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${SESSION_TTL_MS / 1000}${secure}`;
   }
 
   function clearCookieHeader() {
@@ -265,12 +265,12 @@ export function createServer(options = {}) {
     if (body.username !== env.FREEVOX_UI_USERNAME || !verifyPassword(String(body.password || ''), env.FREEVOX_UI_PASSWORD_HASH)) {
       return sendJson(res, 401, { ok: false, error: 'Invalid username or password' });
     }
-    const sessionId = randomBytes(32).toString('base64url');
-    sessions.set(sessionId, {
-      createdAt: Date.now(),
+    const session = {
+      username: env.FREEVOX_UI_USERNAME,
+      expiresAt: now().getTime() + SESSION_TTL_MS,
       csrfToken: randomBytes(32).toString('base64url')
-    });
-    return sendJson(res, 200, { ok: true }, { 'Set-Cookie': cookieHeader(sessionId, req) });
+    };
+    return sendJson(res, 200, { ok: true }, { 'Set-Cookie': cookieHeader(session, req) });
   }
 
   async function serveApp(req, res, session) {
@@ -373,7 +373,6 @@ export function createServer(options = {}) {
       if (req.method === 'POST' && url.pathname === '/logout') {
         if (!session) return sendJson(res, 401, { ok: false, error: 'Authentication required' });
         if (!validateCsrf(req, session)) return sendJson(res, 403, { ok: false, error: 'Invalid CSRF token' });
-        sessions.delete(session.id);
         return sendJson(res, 200, { ok: true }, { 'Set-Cookie': clearCookieHeader() });
       }
 
@@ -396,7 +395,6 @@ export function createServer(options = {}) {
 
   server.formatTextTranscript = formatTextTranscript;
   server.formatVoiceTranscript = formatVoiceTranscript;
-  server._sessions = sessions;
   return server;
 }
 

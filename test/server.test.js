@@ -97,6 +97,41 @@ test('authenticated POST routes require CSRF token', async () => {
   });
 });
 
+test('login persists across server instances with stateless signed cookie', async () => {
+  let auth;
+  await withServer({ env: env(), now: () => new Date('2026-05-22T16:30:00Z') }, async (baseUrl) => {
+    auth = await login(baseUrl);
+  });
+
+  await withServer({ env: env(), now: () => new Date('2026-05-22T16:31:00Z') }, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/`, { headers: { Cookie: auth.cookie } });
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /Send to SELMA/);
+    assert.match(html, new RegExp(`content="${auth.csrf}"`));
+  });
+});
+
+test('expired signed login cookie is rejected', async () => {
+  let auth;
+  await withServer({ env: env(), now: () => new Date('2026-05-22T16:30:00Z') }, async (baseUrl) => {
+    auth = await login(baseUrl);
+  });
+
+  await withServer({ env: env(), now: () => new Date('2026-06-22T16:30:01Z') }, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/send-text`, {
+      method: 'POST',
+      headers: {
+        Cookie: auth.cookie,
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': auth.csrf
+      },
+      body: JSON.stringify({ text: 'hello' })
+    });
+    assert.equal(response.status, 401);
+  });
+});
+
 test('POST /api/send-text rejects empty text', async () => {
   await withServer({ env: env() }, async (baseUrl) => {
     const auth = await login(baseUrl);
