@@ -107,7 +107,7 @@ test('login persists across server instances with stateless signed cookie', asyn
     const response = await fetch(`${baseUrl}/`, { headers: { Cookie: auth.cookie } });
     assert.equal(response.status, 200);
     const html = await response.text();
-    assert.match(html, /Send to SELMA/);
+    assert.match(html, /id="text-panel"/);
     assert.match(html, new RegExp(`content="${auth.csrf}"`));
   });
 });

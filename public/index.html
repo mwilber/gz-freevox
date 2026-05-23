@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#12554f">
+    <meta name="theme-color" content="#07020f">
     <meta name="csrf-token" content="__CSRF_TOKEN__">
     <title>FreeVox</title>
     <link rel="manifest" href="/manifest.json">
@@ -15,16 +15,15 @@
       <header class="app-header">
         <div>
           <p class="eyebrow">FreeVox</p>
-          <h1>Send to SELMA</h1>
+          <h1>SELMA Interface</h1>
         </div>
         <button id="logout-button" class="ghost-button" type="button">Log out</button>
       </header>
 
       <section id="text-panel" class="panel" aria-labelledby="text-title">
-        <h2 id="text-title">Text</h2>
+        <h2 id="text-title">Quick Message</h2>
         <form id="text-form" class="stack">
           <label>
-            Message
             <textarea id="text-input" name="text" rows="7" placeholder="Remind me to buy milk tomorrow."></textarea>
           </label>
           <button id="send-button" type="submit">Send</button>
