@@ -1,4 +1,4 @@
-const CACHE_NAME = 'freevox-app-shell-v1';
+const CACHE_NAME = 'freevox-app-shell-v2';
 const APP_SHELL = [
   '/offline.html',
   '/styles.css',

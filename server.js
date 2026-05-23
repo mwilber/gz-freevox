@@ -294,9 +294,12 @@ export function createServer(options = {}) {
     const filePath = join(PUBLIC_DIR, relative);
     try {
       const content = await readFile(filePath);
+      const cacheControl = ['app.js', 'index.html', 'login.html', 'service-worker.js'].includes(relative)
+        ? 'no-cache'
+        : 'public, max-age=3600';
       res.writeHead(200, {
         'Content-Type': MIME_TYPES[extname(filePath)] || 'application/octet-stream',
-        'Cache-Control': relative === 'service-worker.js' ? 'no-cache' : 'public, max-age=3600'
+        'Cache-Control': cacheControl
       });
       res.end(content);
     } catch {

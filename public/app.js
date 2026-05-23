@@ -153,7 +153,7 @@ async function startConversation() {
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
-    const realtimeResponse = await fetch(`https://api.openai.com/v1/realtime?model=${encodeURIComponent(session.model)}`, {
+    const realtimeResponse = await fetch('https://api.openai.com/v1/realtime/calls', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${session.client_secret}`,
@@ -161,7 +161,10 @@ async function startConversation() {
       },
       body: offer.sdp
     });
-    if (!realtimeResponse.ok) throw new Error('Realtime connection setup failed.');
+    if (!realtimeResponse.ok) {
+      const errorText = await realtimeResponse.text().catch(() => '');
+      throw new Error(errorText ? `Realtime connection setup failed: ${errorText}` : 'Realtime connection setup failed.');
+    }
     await peerConnection.setRemoteDescription({
       type: 'answer',
       sdp: await realtimeResponse.text()
