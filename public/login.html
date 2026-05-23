@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#12554f">
+    <title>FreeVox Login</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="auth-shell">
+      <section class="panel login-panel" aria-labelledby="login-title">
+        <p class="eyebrow">FreeVox</p>
+        <h1 id="login-title">Sign in</h1>
+        <form id="login-form" class="stack">
+          <label>
+            Username
+            <input name="username" autocomplete="username" required>
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <button type="submit">Sign in</button>
+          <p id="login-status" class="status" role="status" aria-live="polite">Enter your credentials.</p>
+        </form>
+      </section>
+    </main>
+    <script>
+      const form = document.querySelector('#login-form');
+      const status = document.querySelector('#login-status');
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        status.textContent = 'Signing in...';
+        const data = Object.fromEntries(new FormData(form));
+        try {
+          const response = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          if (!response.ok) throw new Error('Sign-in failed.');
+          window.location.assign('/');
+        } catch (error) {
+          status.textContent = error.message || 'Sign-in failed.';
+        }
+      });
+    </script>
+  </body>
+</html>

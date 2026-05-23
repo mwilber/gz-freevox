@@ -1,0 +1,18 @@
+{
+  "name": "freevox",
+  "version": "0.1.0",
+  "description": "Minimal authenticated PWA for sending text and realtime voice transcripts to SELMA.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "local": "node server.js",
+    "test": "node --test",
+    "hash-password": "node scripts/hash-password.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  }
+}

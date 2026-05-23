@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#12554f">
+    <meta name="csrf-token" content="__CSRF_TOKEN__">
+    <title>FreeVox</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">FreeVox</p>
+          <h1>Send to SELMA</h1>
+        </div>
+        <button id="logout-button" class="ghost-button" type="button">Log out</button>
+      </header>
+
+      <section class="panel" aria-labelledby="text-title">
+        <h2 id="text-title">Text</h2>
+        <form id="text-form" class="stack">
+          <label>
+            Message
+            <textarea id="text-input" name="text" rows="7" placeholder="Remind me to buy milk tomorrow."></textarea>
+          </label>
+          <button id="send-button" type="submit">Send</button>
+          <p id="text-status" class="status" role="status" aria-live="polite">Idle.</p>
+        </form>
+      </section>
+
+      <section class="panel voice-panel" aria-labelledby="voice-title">
+        <h2 id="voice-title">Realtime Voice</h2>
+        <div class="voice-actions">
+          <button id="start-button" type="button">Start Conversation</button>
+          <button id="end-button" class="danger-button" type="button" disabled>End Conversation</button>
+        </div>
+        <p id="voice-status" class="status" role="status" aria-live="polite">Idle.</p>
+        <div class="transcript-box" aria-label="Active conversation transcript">
+          <ol id="live-transcript"></ol>
+        </div>
+      </section>
+    </main>
+    <audio id="remote-audio" autoplay></audio>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
