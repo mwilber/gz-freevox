@@ -149,8 +149,7 @@ test('POST /api/send-voice-transcript formats turns and calls SELMA with source 
     assert.equal(response.status, 200);
     assert.equal(calls[0].body.source, 'freevox_realtime');
     assert.equal(calls[0].body.metadata.turn_count, 2);
-    assert.match(calls[0].body.transcript, /User: Remind me to buy milk tomorrow\./);
-    assert.match(calls[0].body.transcript, /Assistant: I can help with that\./);
+    assert.match(calls[0].body.transcript, /\*\*User:\*\* Remind me to buy milk tomorrow\.\n\n\*\*Assistant:\*\* I can help with that\./);
   });
 });
 

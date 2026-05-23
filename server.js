@@ -246,9 +246,10 @@ export function createServer(options = {}) {
     ];
     for (const turn of turns) {
       const label = turn.role === 'assistant' ? 'Assistant' : 'User';
-      lines.push(`${label}: ${String(turn.text).trim()}`);
+      lines.push(`**${label}:** ${String(turn.text).trim()}`);
+      lines.push('');
     }
-    return lines.join('\n');
+    return lines.join('\n').trimEnd();
   }
 
   function normalizeTurns(turns) {
