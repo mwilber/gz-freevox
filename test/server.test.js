@@ -172,6 +172,35 @@ test('realtime session endpoint does not expose OPENAI_API_KEY', async () => {
   });
 });
 
+test('realtime session endpoint accepts current top-level client secret response shape', async () => {
+  const fetchImpl = async () => new Response(JSON.stringify({
+    value: 'top-level-ephemeral-token',
+    expires_at: 1770000000,
+    session: { model: 'gpt-realtime-test' }
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  await withServer({ env: env(), fetchImpl }, async (baseUrl) => {
+    const auth = await login(baseUrl);
+    const response = await authedPost(baseUrl, auth, '/api/realtime/session', {});
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.client_secret, 'top-level-ephemeral-token');
+    assert.equal(body.expires_at, '2026-02-02T02:40:00.000Z');
+  });
+});
+
+test('realtime session errors return 502 without crashing the server', async () => {
+  const fetchImpl = async () => new Response(JSON.stringify({
+    session: { model: 'gpt-realtime-test' }
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  await withServer({ env: env(), fetchImpl }, async (baseUrl) => {
+    const auth = await login(baseUrl);
+    const response = await authedPost(baseUrl, auth, '/api/realtime/session', {});
+    assert.equal(response.status, 502);
+    const health = await fetch(`${baseUrl}/healthz`);
+    assert.equal(health.status, 200);
+  });
+});
+
 test('service worker and manifest are served', async () => {
   await withServer({ env: env() }, async (baseUrl) => {
     const sw = await fetch(`${baseUrl}/service-worker.js`);

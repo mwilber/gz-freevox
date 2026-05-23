@@ -217,7 +217,7 @@ export function createServer(options = {}) {
       error.statusCode = 502;
       throw error;
     }
-    const secret = data.client_secret?.value || data.client_secret;
+    const secret = data.client_secret?.value || data.value || (typeof data.client_secret === 'string' ? data.client_secret : null);
     if (!secret) {
       const error = new Error('OpenAI realtime session response did not include a client secret');
       error.statusCode = 502;
@@ -226,7 +226,7 @@ export function createServer(options = {}) {
     return {
       client_secret: secret,
       model: data.session?.model || env.REALTIME_MODEL,
-      expires_at: data.client_secret?.expires_at ? new Date(data.client_secret.expires_at * 1000).toISOString() : null
+      expires_at: data.client_secret?.expires_at || data.expires_at ? new Date((data.client_secret?.expires_at || data.expires_at) * 1000).toISOString() : null
     };
   }
 
@@ -359,11 +359,11 @@ export function createServer(options = {}) {
       }
 
       if (req.method === 'GET' && url.pathname === '/') {
-        return session ? serveApp(req, res, session) : serveLogin(res);
+        return session ? await serveApp(req, res, session) : await serveLogin(res);
       }
 
       if (req.method === 'POST' && url.pathname === '/login') {
-        return handleLogin(req, res);
+        return await handleLogin(req, res);
       }
 
       if (req.method === 'POST' && url.pathname === '/logout') {
@@ -374,11 +374,11 @@ export function createServer(options = {}) {
       }
 
       if (url.pathname.startsWith('/api/')) {
-        return handleApi(req, res, session);
+        return await handleApi(req, res, session);
       }
 
       if (req.method === 'GET') {
-        return serveStatic(req, res);
+        return await serveStatic(req, res);
       }
 
       return sendJson(res, 405, { ok: false, error: 'Method not allowed' });
