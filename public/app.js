@@ -3,11 +3,14 @@ const textForm = document.querySelector('#text-form');
 const textInput = document.querySelector('#text-input');
 const textStatus = document.querySelector('#text-status');
 const sendButton = document.querySelector('#send-button');
+const textPanel = document.querySelector('#text-panel');
+const showVoiceButton = document.querySelector('#show-voice-button');
+const showTextButton = document.querySelector('#show-text-button');
 const startButton = document.querySelector('#start-button');
 const endButton = document.querySelector('#end-button');
 const voiceStatus = document.querySelector('#voice-status');
 const liveTranscript = document.querySelector('#live-transcript');
-const voicePanel = document.querySelector('.voice-panel');
+const voicePanel = document.querySelector('#voice-panel');
 const remoteAudio = document.querySelector('#remote-audio');
 const logoutButton = document.querySelector('#logout-button');
 
@@ -39,6 +42,17 @@ function setTextStatus(value) {
 
 function setVoiceStatus(value) {
   voiceStatus.textContent = value;
+}
+
+function showPanel(panelName) {
+  const showText = panelName === 'text';
+  textPanel.hidden = !showText;
+  voicePanel.hidden = showText;
+  if (showText) {
+    textInput.focus();
+  } else {
+    startButton.focus();
+  }
 }
 
 function renderTranscript() {
@@ -224,6 +238,8 @@ textForm.addEventListener('submit', async (event) => {
 
 startButton.addEventListener('click', startConversation);
 endButton.addEventListener('click', endConversation);
+showVoiceButton.addEventListener('click', () => showPanel('voice'));
+showTextButton.addEventListener('click', () => showPanel('text'));
 logoutButton.addEventListener('click', async () => {
   await fetch('/logout', {
     method: 'POST',

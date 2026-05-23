@@ -20,7 +20,7 @@
         <button id="logout-button" class="ghost-button" type="button">Log out</button>
       </header>
 
-      <section class="panel" aria-labelledby="text-title">
+      <section id="text-panel" class="panel" aria-labelledby="text-title">
         <h2 id="text-title">Text</h2>
         <form id="text-form" class="stack">
           <label>
@@ -30,9 +30,10 @@
           <button id="send-button" type="submit">Send</button>
           <p id="text-status" class="status" role="status" aria-live="polite">Idle.</p>
         </form>
+        <button id="show-voice-button" class="switch-button" type="button">Use Realtime Voice</button>
       </section>
 
-      <section class="panel voice-panel" aria-labelledby="voice-title">
+      <section id="voice-panel" class="panel voice-panel" aria-labelledby="voice-title" hidden>
         <h2 id="voice-title">Realtime Voice</h2>
         <div class="voice-actions">
           <button id="start-button" type="button">Start Conversation</button>
@@ -42,9 +43,10 @@
         <div class="transcript-box" aria-label="Active conversation transcript">
           <ol id="live-transcript"></ol>
         </div>
+        <button id="show-text-button" class="switch-button" type="button">Use Text Input</button>
       </section>
     </main>
     <audio id="remote-audio" autoplay></audio>
-    <script src="/app.js?v=20260523-rt-calls" type="module"></script>
+    <script src="/app.js?v=20260523-panel-toggle" type="module"></script>
   </body>
 </html>
