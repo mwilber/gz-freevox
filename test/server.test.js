@@ -97,6 +97,27 @@ test('authenticated POST routes require CSRF token', async () => {
   });
 });
 
+test('GET /share serves login when unauthenticated', async () => {
+  await withServer({ env: env() }, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/share?text=hello`);
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /FreeVox Login/);
+  });
+});
+
+test('GET /share serves app when authenticated', async () => {
+  await withServer({ env: env() }, async (baseUrl) => {
+    const auth = await login(baseUrl);
+    const response = await fetch(`${baseUrl}/share?title=A&text=B&url=https%3A%2F%2Fexample.com`, {
+      headers: { Cookie: auth.cookie }
+    });
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /id="text-panel"/);
+    assert.match(html, new RegExp(`content="${auth.csrf}"`));
+  });
+});
+
 test('login persists across server instances with stateless signed cookie', async () => {
   let auth;
   await withServer({ env: env(), now: () => new Date('2026-05-22T16:30:00Z') }, async (baseUrl) => {
@@ -257,6 +278,15 @@ test('manifest contains required installability fields and icon references', asy
     assert.ok(manifest.background_color);
     assert.ok(manifest.icons.some((icon) => icon.sizes === '192x192'));
     assert.ok(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose === 'maskable'));
+    assert.deepEqual(manifest.share_target, {
+      action: '/share',
+      method: 'GET',
+      params: {
+        title: 'title',
+        text: 'text',
+        url: 'url'
+      }
+    });
   });
 });
 

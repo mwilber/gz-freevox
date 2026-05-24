@@ -140,6 +140,37 @@ On Android Chrome:
 
 The manifest includes standalone display mode, theme/background colors, 192px and 512px icons, and a maskable 512px icon. The service worker caches only the app shell and does not cache API responses, realtime credentials, text submissions, SELMA responses, or transcripts.
 
+## Android Share Target
+
+FreeVox registers as an Android share target for installed PWAs in Chrome. Sharing text, a title, or a URL to FreeVox opens the app and places the shared content into the text input. It does not send automatically; press Send after reviewing the text.
+
+The manifest entry is:
+
+```json
+"share_target": {
+  "action": "/share",
+  "method": "GET",
+  "params": {
+    "title": "title",
+    "text": "text",
+    "url": "url"
+  }
+}
+```
+
+After adding or changing `share_target`, Android usually needs the PWA to be reinstalled before it appears in the OS share sheet.
+
+To uninstall/reinstall on Android 12 with Chrome:
+
+1. Long-press the installed FreeVox home-screen icon.
+2. Tap App info or Remove.
+3. Choose Uninstall, or remove the installed app if Android presents that wording.
+4. Open Chrome and visit the deployed FreeVox URL.
+5. Open Chrome menu.
+6. Tap Install app or Add to Home screen.
+7. Launch FreeVox once from the installed icon and sign in.
+8. In another app, share text or a URL and choose FreeVox from the Android share sheet.
+
 ## Manual Realtime Verification
 
 1. Sign in on the target mobile browser.

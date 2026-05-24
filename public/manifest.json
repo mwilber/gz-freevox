@@ -6,6 +6,15 @@
   "display": "standalone",
   "theme_color": "#07020f",
   "background_color": "#07020f",
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     {
       "src": "/icons/android/android-launchericon-192-192.png",

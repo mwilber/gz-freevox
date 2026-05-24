@@ -44,6 +44,24 @@ function setVoiceStatus(value) {
   voiceStatus.textContent = value;
 }
 
+function getSharedText() {
+  if (window.location.pathname !== '/share') return '';
+  const params = new URLSearchParams(window.location.search);
+  const parts = [params.get('title'), params.get('text'), params.get('url')]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+  return parts.join('\n\n');
+}
+
+function loadSharedText() {
+  const sharedText = getSharedText();
+  if (!sharedText) return;
+  textInput.value = sharedText;
+  showPanel('text');
+  setTextStatus('Shared content loaded. Press Send when ready.');
+  window.history.replaceState({}, '', '/');
+}
+
 function showPanel(panelName) {
   const showText = panelName === 'text';
   textPanel.hidden = !showText;
@@ -251,3 +269,5 @@ logoutButton.addEventListener('click', async () => {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/service-worker.js').catch(() => {});
 }
+
+loadSharedText();

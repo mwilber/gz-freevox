@@ -47,7 +47,7 @@
             body: JSON.stringify(data)
           });
           if (!response.ok) throw new Error('Sign-in failed.');
-          window.location.assign('/');
+          window.location.assign(window.location.href);
         } catch (error) {
           status.textContent = error.message || 'Sign-in failed.';
         }

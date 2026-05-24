@@ -362,7 +362,7 @@ export function createServer(options = {}) {
         return sendJson(res, 200, { ok: true });
       }
 
-      if (req.method === 'GET' && url.pathname === '/') {
+      if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/share')) {
         return session ? await serveApp(req, res, session) : await serveLogin(res);
       }
 
