@@ -138,7 +138,7 @@ On Android Chrome:
 4. Choose Install app or Add to Home screen.
 5. Launch FreeVox from the installed home-screen icon.
 
-The manifest includes standalone display mode, theme/background colors, 192px and 512px icons, and a maskable 512px icon. The service worker caches only the app shell and does not cache API responses, realtime credentials, text submissions, SELMA responses, or transcripts.
+The manifest includes app identity metadata, standalone display mode, theme/background colors, 192px and 512px icons, and a maskable 512px icon. The service worker caches only the app shell and does not cache API responses, realtime credentials, text submissions, SELMA responses, or transcripts.
 
 ## Android Share Target
 

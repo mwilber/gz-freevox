@@ -274,12 +274,16 @@ test('manifest contains required installability fields and icon references', asy
     const manifest = await response.json();
     assert.equal(manifest.name, 'FreeVox');
     assert.equal(manifest.short_name, 'FreeVox');
+    assert.equal(manifest.description, 'Private voice and text input for SELMA.');
+    assert.equal(manifest.id, '/');
     assert.equal(manifest.start_url, '/');
     assert.equal(manifest.scope, '/');
     assert.equal(manifest.display, 'standalone');
+    assert.equal(manifest.orientation, 'any');
     assert.ok(manifest.theme_color);
     assert.ok(manifest.background_color);
     assert.ok(manifest.icons.some((icon) => icon.sizes === '192x192'));
+    assert.ok(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose === 'any'));
     assert.ok(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose === 'maskable'));
     assert.deepEqual(manifest.share_target, {
       action: '/share',
