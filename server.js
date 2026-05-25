@@ -231,18 +231,14 @@ export function createServer(options = {}) {
   }
 
   function formatTextTranscript(text) {
-    return `# FreeVox Text\n\n${text.trim()}`;
+    return text.trim();
   }
 
   function formatVoiceTranscript(startedAt, endedAt, turns) {
     const lines = [
-      '# FreeVox Voice Conversation',
-      '',
       `Started: ${startedAt}`,
       `Ended: ${endedAt}`,
       '',
-      '## Transcript',
-      ''
     ];
     for (const turn of turns) {
       const label = turn.role === 'assistant' ? 'Assistant' : 'User';

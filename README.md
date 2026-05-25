@@ -195,7 +195,7 @@ FreeVox keeps active voice transcript turns only in browser memory and clears th
 
 Authenticated browser routes use signed session cookies and require `X-CSRF-Token` on POST requests.
 
-- `POST /api/send-text`: accepts `{ "text": "..." }`, formats `# FreeVox Text`, and sends `source: "freevox_text"` to SELMA.
+- `POST /api/send-text`: accepts `{ "text": "..." }` and sends it to SELMA with `source: "freevox_text"`.
 - `POST /api/realtime/session`: creates an OpenAI realtime client secret with the server-side OpenAI key and returns only short-lived browser-safe credential data.
-- `POST /api/send-voice-transcript`: accepts completed transcript turns, formats `# FreeVox Voice Conversation`, and sends `source: "freevox_realtime"` to SELMA.
+- `POST /api/send-voice-transcript`: accepts completed transcript turns and sends them to SELMA with `source: "freevox_realtime"`.
 - `GET /healthz`: unauthenticated health check.

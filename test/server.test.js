@@ -173,7 +173,7 @@ test('POST /api/send-text calls SELMA with source freevox_text', async () => {
     assert.equal(response.status, 200);
     assert.equal(calls[0].url, 'https://selma.example/api/agent-runs');
     assert.equal(calls[0].body.source, 'freevox_text');
-    assert.equal(calls[0].body.transcript, '# FreeVox Text\n\nBuy milk.');
+    assert.equal(calls[0].body.transcript, 'Buy milk.');
     assert.equal(calls[0].body.metadata.submitted_at, '2026-05-22T16:30:00.000Z');
   });
 });
@@ -205,6 +205,9 @@ test('POST /api/send-voice-transcript formats turns and calls SELMA with source 
     assert.equal(response.status, 200);
     assert.equal(calls[0].body.source, 'freevox_realtime');
     assert.equal(calls[0].body.metadata.turn_count, 2);
+    assert.equal(calls[0].body.transcript.startsWith('#'), false);
+    assert.equal(calls[0].body.transcript.includes('## Transcript'), false);
+    assert.match(calls[0].body.transcript, /^Started: 2026-05-22T16:30:00Z\nEnded: 2026-05-22T16:34:00Z/);
     assert.match(calls[0].body.transcript, /\*\*User:\*\* Remind me to buy milk tomorrow\.\n\n\*\*Assistant:\*\* I can help with that\./);
   });
 });
