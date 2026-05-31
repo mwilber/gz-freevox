@@ -224,6 +224,38 @@ h2 {
   gap: 14px;
 }
 
+.text-actions {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 10px;
+}
+
+.icon-button {
+  display: inline-grid;
+  min-width: 58px;
+  padding: 0;
+  place-items: center;
+}
+
+.mic-icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+.mic-closed-icon,
+.icon-button.is-listening .mic-open-icon {
+  display: none;
+}
+
+.icon-button.is-listening .mic-closed-icon {
+  display: block;
+}
+
 .eyebrow {
   color: var(--focus);
   font-size: 0.78rem;

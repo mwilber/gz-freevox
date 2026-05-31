@@ -3,6 +3,7 @@ const textForm = document.querySelector('#text-form');
 const textInput = document.querySelector('#text-input');
 const textStatus = document.querySelector('#text-status');
 const sendButton = document.querySelector('#send-button');
+const dictationButton = document.querySelector('#dictation-button');
 const textPanel = document.querySelector('#text-panel');
 const showVoiceButton = document.querySelector('#show-voice-button');
 const showTextButton = document.querySelector('#show-text-button');
@@ -21,6 +22,13 @@ let startedAt = null;
 let turnCounter = 0;
 let transcriptTurns = [];
 let userItems = new Map();
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let textRecognition = null;
+let textRecognitionActive = false;
+let dictationBaseText = '';
+let finalDictationText = '';
+let latestDictationText = '';
+let dictationErrorMessage = '';
 
 async function postJson(url, body) {
   const response = await fetch(url, {
@@ -42,6 +50,91 @@ function setTextStatus(value) {
 
 function setVoiceStatus(value) {
   voiceStatus.textContent = value;
+}
+
+function appendDictation(baseText, spokenText) {
+  const cleanBase = String(baseText || '').trimEnd();
+  const cleanSpoken = String(spokenText || '').trim();
+  if (!cleanSpoken) return cleanBase;
+  return cleanBase ? `${cleanBase} ${cleanSpoken}` : cleanSpoken;
+}
+
+function setDictationActive(active) {
+  textRecognitionActive = active;
+  dictationButton.classList.toggle('is-listening', active);
+  dictationButton.setAttribute('aria-pressed', String(active));
+  dictationButton.setAttribute('aria-label', active ? 'Stop voice input' : 'Start voice input');
+}
+
+function stopTextDictation() {
+  if (!textRecognition || !textRecognitionActive) return;
+  textRecognition.stop();
+}
+
+function createTextRecognition() {
+  if (!SpeechRecognition) return null;
+  const recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = navigator.language || 'en-US';
+
+  recognition.addEventListener('start', () => {
+    setDictationActive(true);
+    setTextStatus('Listening...');
+  });
+
+  recognition.addEventListener('result', (event) => {
+    let interimText = '';
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const result = event.results[index];
+      const transcript = result[0]?.transcript || '';
+      if (result.isFinal) {
+        finalDictationText = `${finalDictationText} ${transcript}`.trim();
+      } else {
+        interimText = `${interimText} ${transcript}`.trim();
+      }
+    }
+    latestDictationText = `${finalDictationText} ${interimText}`.trim();
+    textInput.value = appendDictation(dictationBaseText, latestDictationText);
+  });
+
+  recognition.addEventListener('end', () => {
+    const capturedText = (latestDictationText || finalDictationText).trim();
+    setDictationActive(false);
+    textInput.value = appendDictation(dictationBaseText, capturedText);
+    setTextStatus(dictationErrorMessage || (capturedText ? 'Voice input added. Press Send when ready.' : 'Voice input stopped.'));
+    dictationErrorMessage = '';
+    textInput.focus();
+  });
+
+  recognition.addEventListener('error', (event) => {
+    dictationErrorMessage = event.error === 'not-allowed' ? 'Microphone permission was denied.' : 'Voice input failed.';
+  });
+
+  return recognition;
+}
+
+function startTextDictation() {
+  if (!SpeechRecognition) {
+    setTextStatus('Voice input is not supported in this browser.');
+    return;
+  }
+  if (textRecognitionActive) {
+    stopTextDictation();
+    return;
+  }
+
+  dictationBaseText = textInput.value;
+  finalDictationText = '';
+  latestDictationText = '';
+  dictationErrorMessage = '';
+  textRecognition = createTextRecognition();
+  try {
+    textRecognition.start();
+  } catch (error) {
+    setDictationActive(false);
+    setTextStatus(error.message || 'Could not start voice input.');
+  }
 }
 
 function getSharedText() {
@@ -236,6 +329,7 @@ async function endConversation() {
 
 textForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  stopTextDictation();
   const text = textInput.value.trim();
   if (!text) {
     setTextStatus('Enter text before sending.');
@@ -254,6 +348,7 @@ textForm.addEventListener('submit', async (event) => {
   }
 });
 
+dictationButton.addEventListener('click', startTextDictation);
 startButton.addEventListener('click', startConversation);
 endButton.addEventListener('click', endConversation);
 showVoiceButton.addEventListener('click', () => showPanel('voice'));
@@ -268,6 +363,11 @@ logoutButton.addEventListener('click', async () => {
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+}
+
+if (!SpeechRecognition) {
+  dictationButton.disabled = true;
+  dictationButton.setAttribute('aria-label', 'Voice input is not supported in this browser');
 }
 
 loadSharedText();

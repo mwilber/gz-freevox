@@ -31,7 +31,26 @@
           <label>
             <textarea id="text-input" name="text" rows="7" placeholder="Remind me to buy milk tomorrow."></textarea>
           </label>
-          <button id="send-button" type="submit">Send</button>
+          <div class="text-actions">
+            <button id="dictation-button" class="icon-button" type="button" aria-label="Start voice input" aria-pressed="false">
+              <svg class="mic-icon mic-open-icon" aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <path d="M12 19v3"></path>
+                <path d="M8 22h8"></path>
+              </svg>
+              <svg class="mic-icon mic-closed-icon" aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M9 9v3a3 3 0 0 0 5.12 2.12"></path>
+                <path d="M15 9.34V5a3 3 0 0 0-5.94-.6"></path>
+                <path d="M17 16.95A7 7 0 0 1 5 12v-2"></path>
+                <path d="M19 10v2a6.94 6.94 0 0 1-.72 3.08"></path>
+                <path d="M12 19v3"></path>
+                <path d="M8 22h8"></path>
+                <path d="M2 2l20 20"></path>
+              </svg>
+            </button>
+            <button id="send-button" type="submit">Send</button>
+          </div>
           <p id="text-status" class="status" role="status" aria-live="polite">Idle.</p>
         </form>
         <button id="show-voice-button" class="switch-button" type="button">Use Realtime Voice</button>
@@ -51,6 +70,6 @@
       </section>
     </main>
     <audio id="remote-audio" autoplay></audio>
-    <script src="/app.js?v=20260523-panel-toggle" type="module"></script>
+    <script src="/app.js?v=20260531-dictation-input" type="module"></script>
   </body>
 </html>
