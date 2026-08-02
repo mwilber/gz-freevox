@@ -133,23 +133,29 @@ test('login persists across server instances with stateless signed cookie', asyn
   });
 });
 
-test('expired signed login cookie is rejected', async () => {
+test('signed login cookie remains valid until explicit logout', async () => {
   let auth;
   await withServer({ env: env(), now: () => new Date('2026-05-22T16:30:00Z') }, async (baseUrl) => {
     auth = await login(baseUrl);
   });
 
   await withServer({ env: env(), now: () => new Date('2026-06-22T16:30:01Z') }, async (baseUrl) => {
-    const response = await fetch(`${baseUrl}/api/send-text`, {
+    const response = await fetch(`${baseUrl}/`, { headers: { Cookie: auth.cookie } });
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /id="text-panel"/);
+  });
+});
+
+test('explicit logout clears the persistent login cookie', async () => {
+  await withServer({ env: env() }, async (baseUrl) => {
+    const auth = await login(baseUrl);
+    const response = await fetch(`${baseUrl}/logout`, {
       method: 'POST',
-      headers: {
-        Cookie: auth.cookie,
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': auth.csrf
-      },
-      body: JSON.stringify({ text: 'hello' })
+      headers: { Cookie: auth.cookie, 'X-CSRF-Token': auth.csrf }
     });
-    assert.equal(response.status, 401);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('set-cookie'), /freevox_session=;/);
+    assert.match(response.headers.get('set-cookie'), /Max-Age=0/);
   });
 });
 
@@ -265,6 +271,9 @@ test('service worker and manifest are served', async () => {
     const manifest = await fetch(`${baseUrl}/manifest.json`);
     assert.equal(sw.status, 200);
     assert.equal(manifest.status, 200);
+    const source = await sw.text();
+    assert.doesNotMatch(source, /__CACHE_VERSION__/);
+    assert.match(source, /const CACHE_VERSION = '[a-f0-9]{16}'/);
   });
 });
 

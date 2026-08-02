@@ -40,8 +40,54 @@ async function postJson(url, body) {
     body: JSON.stringify(body)
   });
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    await clearAuthenticatedShell();
+    window.location.assign('/');
+    throw new Error('Your login is no longer valid.');
+  }
   if (!response.ok) throw new Error(data.error || 'Request failed.');
+  refreshServiceWorker();
   return data;
+}
+
+function workerMessage(message) {
+  if (!('serviceWorker' in navigator)) return Promise.resolve();
+  return navigator.serviceWorker.ready.then((registration) => new Promise((resolve) => {
+    const worker = navigator.serviceWorker.controller || registration.active;
+    if (!worker) {
+      resolve();
+      return;
+    }
+    const channel = new MessageChannel();
+    const timeout = window.setTimeout(resolve, 2000);
+    channel.port1.onmessage = () => {
+      window.clearTimeout(timeout);
+      resolve();
+    };
+    worker.postMessage(message, [channel.port2]);
+  }));
+}
+
+function clearAuthenticatedShell() {
+  return workerMessage({ type: 'CLEAR_AUTHENTICATED_SHELL' });
+}
+
+function refreshServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistration().then((registration) => registration?.update()).catch(() => {});
+}
+
+async function initializeServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+
+  // Register only on the first server-backed launch. Calling register on every
+  // cached launch can trigger a network update check and wake the server.
+  if (!navigator.serviceWorker.controller) {
+    await navigator.serviceWorker.register('/service-worker.js');
+  }
+
+  const html = `<!doctype html>\n${document.documentElement.outerHTML}`;
+  await workerMessage({ type: 'CACHE_AUTHENTICATED_SHELL', html });
 }
 
 function setTextStatus(value) {
@@ -354,16 +400,20 @@ endButton.addEventListener('click', endConversation);
 showVoiceButton.addEventListener('click', () => showPanel('voice'));
 showTextButton.addEventListener('click', () => showPanel('text'));
 logoutButton.addEventListener('click', async () => {
-  await fetch('/logout', {
-    method: 'POST',
-    headers: { 'X-CSRF-Token': csrfToken }
-  });
-  window.location.assign('/');
+  try {
+    const response = await fetch('/logout', {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': csrfToken }
+    });
+    if (!response.ok && response.status !== 401) throw new Error('Log out failed.');
+    await clearAuthenticatedShell();
+    window.location.assign('/');
+  } catch (error) {
+    setTextStatus(error.message || 'Log out failed.');
+  }
 });
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js').catch(() => {});
-}
+initializeServiceWorker().catch(() => {});
 
 if (!SpeechRecognition) {
   dictationButton.disabled = true;

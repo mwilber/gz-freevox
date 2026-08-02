@@ -1,6 +1,6 @@
 import http from 'node:http';
-import { createHmac, timingSafeEqual, randomBytes, pbkdf2Sync } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { createHash, createHmac, timingSafeEqual, randomBytes, pbkdf2Sync } from 'node:crypto';
+import { readFile, readdir } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
@@ -8,7 +8,25 @@ import dotenv from 'dotenv';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PUBLIC_DIR = join(__dirname, 'public');
 const MAX_BODY_BYTES = 1024 * 1024;
-const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 365 * 10;
+
+async function createStaticCacheVersion(directory, relativeDirectory = '') {
+  const hash = createHash('sha256');
+  const entries = await readdir(join(directory, relativeDirectory), { withFileTypes: true });
+  entries.sort((left, right) => left.name.localeCompare(right.name));
+
+  for (const entry of entries) {
+    const relativePath = join(relativeDirectory, entry.name);
+    if (entry.isDirectory()) {
+      hash.update(await createStaticCacheVersion(directory, relativePath));
+    } else if (relativePath !== 'service-worker.js') {
+      hash.update(relativePath);
+      hash.update(await readFile(join(directory, relativePath)));
+    }
+  }
+
+  return hash.digest('hex');
+}
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -25,6 +43,7 @@ export function createServer(options = {}) {
   const env = options.env ?? process.env;
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const now = options.now ?? (() => new Date());
+  const staticCacheVersion = createStaticCacheVersion(PUBLIC_DIR);
 
   function requireConfig(names) {
     const missing = names.filter((name) => !env[name]);
@@ -74,14 +93,13 @@ export function createServer(options = {}) {
     if (!env.FREEVOX_SESSION_SECRET) return null;
     const session = decodeCookiePayload(parseCookies(req).freevox_session);
     if (!session || session.username !== env.FREEVOX_UI_USERNAME) return null;
-    if (typeof session.expiresAt !== 'number' || session.expiresAt <= now().getTime()) return null;
     if (typeof session.csrfToken !== 'string' || !session.csrfToken) return null;
     return session;
   }
 
   function cookieHeader(session, req) {
     const secure = isSecureRequest(req) ? '; Secure' : '';
-    return `freevox_session=${encodeURIComponent(encodeCookiePayload(session))}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${SESSION_TTL_MS / 1000}${secure}`;
+    return `freevox_session=${encodeURIComponent(encodeCookiePayload(session))}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE_SECONDS}${secure}`;
   }
 
   function clearCookieHeader() {
@@ -263,7 +281,6 @@ export function createServer(options = {}) {
     }
     const session = {
       username: env.FREEVOX_UI_USERNAME,
-      expiresAt: now().getTime() + SESSION_TTL_MS,
       csrfToken: randomBytes(32).toString('base64url')
     };
     return sendJson(res, 200, { ok: true }, { 'Set-Cookie': cookieHeader(session, req) });
@@ -290,7 +307,11 @@ export function createServer(options = {}) {
     }
     const filePath = join(PUBLIC_DIR, relative);
     try {
-      const content = await readFile(filePath);
+      let content = await readFile(filePath);
+      if (relative === 'service-worker.js') {
+        const version = (await staticCacheVersion).slice(0, 16);
+        content = Buffer.from(content.toString('utf8').replace('__CACHE_VERSION__', version));
+      }
       const cacheControl = ['app.js', 'index.html', 'login.html', 'service-worker.js'].includes(relative)
         ? 'no-cache'
         : 'public, max-age=3600';
