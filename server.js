@@ -204,6 +204,12 @@ export function createServer(options = {}) {
     return response;
   }
 
+  async function wakeSelma() {
+    requireConfig(['SELMA_BASE_URL']);
+    const baseUrl = env.SELMA_BASE_URL.replace(/\/+$/, '');
+    await fetchImpl(baseUrl);
+  }
+
   async function createRealtimeSession() {
     requireConfig(['OPENAI_API_KEY', 'REALTIME_MODEL', 'REALTIME_TRANSCRIPTION_MODEL']);
     const response = await fetchImpl('https://api.openai.com/v1/realtime/client_secrets', {
@@ -328,6 +334,12 @@ export function createServer(options = {}) {
   async function handleApi(req, res, session) {
     if (!session) return sendJson(res, 401, { ok: false, error: 'Authentication required' });
     if (!validateCsrf(req, session)) return sendJson(res, 403, { ok: false, error: 'Invalid CSRF token' });
+
+    if (req.method === 'POST' && req.url === '/api/wake-selma') {
+      await wakeSelma();
+      res.writeHead(204, { 'Cache-Control': 'no-store' });
+      return res.end();
+    }
 
     if (req.method === 'POST' && req.url === '/api/realtime/session') {
       const realtimeSession = await createRealtimeSession();

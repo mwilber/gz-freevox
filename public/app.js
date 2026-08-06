@@ -50,6 +50,14 @@ async function postJson(url, body) {
   return data;
 }
 
+function wakeSelma() {
+  fetch('/api/wake-selma', {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': csrfToken },
+    keepalive: true
+  }).catch(() => {});
+}
+
 function workerMessage(message) {
   if (!('serviceWorker' in navigator)) return Promise.resolve();
   return navigator.serviceWorker.ready.then((registration) => new Promise((resolve) => {
@@ -414,6 +422,11 @@ logoutButton.addEventListener('click', async () => {
 });
 
 initializeServiceWorker().catch(() => {});
+
+wakeSelma();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') wakeSelma();
+});
 
 if (!SpeechRecognition) {
   dictationButton.disabled = true;

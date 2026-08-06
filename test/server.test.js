@@ -184,6 +184,23 @@ test('POST /api/send-text calls SELMA with source freevox_text', async () => {
   });
 });
 
+test('POST /api/wake-selma calls the SELMA root without an agent request', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options) => {
+    calls.push({ url, options });
+    return new Response('awake', { status: 200 });
+  };
+  await withServer({ env: env({ SELMA_BASE_URL: 'https://selma.example///' }), fetchImpl }, async (baseUrl) => {
+    const auth = await login(baseUrl);
+    const response = await fetch(`${baseUrl}/api/wake-selma`, {
+      method: 'POST',
+      headers: { Cookie: auth.cookie, 'X-CSRF-Token': auth.csrf }
+    });
+    assert.equal(response.status, 204);
+    assert.deepEqual(calls, [{ url: 'https://selma.example', options: undefined }]);
+  });
+});
+
 test('POST /api/send-voice-transcript rejects empty turns', async () => {
   await withServer({ env: env() }, async (baseUrl) => {
     const auth = await login(baseUrl);
